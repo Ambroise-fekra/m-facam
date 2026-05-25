@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: facam-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-facam}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-facam_dev_pwd}
+      POSTGRES_DB: facam_master
+    ports:
+      - "5544:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+      - ./backend/src/database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: facam-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-facam}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-facam_dev_pwd}
+      DB_MASTER_NAME: facam_master
+      DB_TEMPLATE_NAME: facam_template
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-prod}
+      JWT_EXPIRES_IN: 1d
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mock}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000}
+      PAYPAL_MODE: ${PAYPAL_MODE:-sandbox}
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
+      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
+      PAYPAL_SUBSCRIPTION_EMAIL: ${PAYPAL_SUBSCRIPTION_EMAIL:-abo@familycash.example}
+      SUBSCRIPTION_PRICE_EUR: "10"
+      TRIAL_DAYS: "30"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+volumes:
+  pgdata:

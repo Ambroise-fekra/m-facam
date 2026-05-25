@@ -1,0 +1,43 @@
+/* Family Cash Management — modern palette (matches docs/maquettes). */
+:root {
+  --ion-color-primary: #6366f1;
+  --ion-color-primary-rgb: 99, 102, 241;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #4f46e5;
+  --ion-color-primary-tint: #818cf8;
+
+  --ion-color-secondary: #8b5cf6;
+  --ion-color-secondary-rgb: 139, 92, 246;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #7c3aed;
+  --ion-color-secondary-tint: #a78bfa;
+
+  --ion-color-tertiary: #ec4899;
+  --ion-color-tertiary-rgb: 236, 72, 153;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #be185d;
+  --ion-color-tertiary-tint: #f472b6;
+
+  --ion-color-success: #10b981;
+  --ion-color-warning: #f59e0b;
+  --ion-color-danger: #ef4444;
+  --ion-color-dark: #0f172a;
+  --ion-color-medium: #64748b;
+  --ion-color-light: #f1f5f9;
+
+  --facam-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --facam-gradient-soft: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  --facam-card-bg: rgba(255, 255, 255, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-background-color: #0f172a;
+    --ion-background-color-rgb: 15, 23, 42;
+    --ion-text-color: #f1f5f9;
+    --ion-text-color-rgb: 241, 245, 249;
+  }
+}

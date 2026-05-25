@@ -1,0 +1,145 @@
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Space Grotesk', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* ===== Dark app surface — guarantees readable text everywhere ===== */
+ion-content.facam-bg {
+  --background: #0f172a;
+  --color: #f1f5f9;
+}
+
+/* Generic text helpers on dark */
+.t-white { color: #f1f5f9 !important; }
+.t-muted { color: #94a3b8 !important; }
+.t-accent { color: var(--ion-color-tertiary) !important; }
+.h-title { color: #fff; font-weight: 700; }
+
+/* ===== Form fields: own label above + controlled input (no overlap) ===== */
+.fld-label {
+  display: block;
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  margin: 16px 0 6px;
+}
+ion-input.fld,
+ion-select.fld,
+ion-textarea.fld {
+  --background: rgba(255, 255, 255, 0.07);
+  --color: #ffffff;
+  --placeholder-color: rgba(255, 255, 255, 0.5);
+  --placeholder-opacity: 1;
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --padding-top: 13px;
+  --padding-bottom: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1rem;
+}
+ion-input.fld.ion-focused,
+ion-select.fld.ion-focused,
+ion-textarea.fld.ion-focused {
+  border-color: var(--ion-color-primary);
+}
+/* Light variant (forms on white background, e.g. inscription consulaire-like) */
+ion-input.fld-light,
+ion-select.fld-light,
+ion-textarea.fld-light {
+  --background: #fff;
+  --color: #0f172a;
+  --placeholder-color: #94a3b8;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  color: #0f172a;
+}
+
+/* ===== Cards / panels ===== */
+.facam-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  padding: 16px;
+  color: #f1f5f9;
+}
+
+.facam-glass-card {
+  background: var(--facam-card-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  padding: 18px;
+  color: #f1f5f9;
+}
+
+/* ===== Balance hero ===== */
+.facam-balance-amount {
+  font-size: 2.8rem;
+  font-weight: 800;
+  background: var(--facam-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.1;
+}
+
+/* ===== Progress bar ===== */
+.facam-progress {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+
+  &-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ion-color-success), var(--ion-color-primary));
+
+    &.time {
+      background: linear-gradient(90deg, #f59e0b, #ef4444);
+    }
+  }
+}
+
+/* ===== Links (soft, distinct, not pink) ===== */
+.facam-link {
+  color: #a5b4fc;
+  text-decoration: none;
+  font-weight: 600;
+}
+.facam-link:hover { text-decoration: underline; }
+
+/* ===== Password field with show/hide eye ===== */
+.pwd-wrap { position: relative; }
+.pwd-wrap ion-input.fld { --padding-end: 44px; }
+.pwd-wrap .eye {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 6px;
+  line-height: 1;
+  z-index: 2;
+}
+
+/* ===== Status badges ===== */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.badge-active { background: rgba(16, 185, 129, 0.18); color: #34d399; }
+.badge-proposed { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
+.badge-closed { background: rgba(100, 116, 139, 0.22); color: #cbd5e1; }
+.badge-rejected { background: rgba(239, 68, 68, 0.18); color: #f87171; }

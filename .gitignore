@@ -1,0 +1,59 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# Build
+dist/
+build/
+www/
+*.tsbuildinfo
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Ionic / Capacitor
+.angular/
+.sourcemaps/
+.versions/
+platforms/
+plugins/
+android/app/build/
+android/build/
+ios/Pods/
+ios/build/
+
+# Tests
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# PostgreSQL local data
+pgdata/
+
+# Local screenshots / scratch
+ScreenShots/
+.startup.log
+.serve.log
+.serve2.log
