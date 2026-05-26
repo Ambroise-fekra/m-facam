@@ -5,6 +5,7 @@ import { CurrentFamily, FamilyContext } from '../../common/decorators/family-con
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { VoteDto } from './dto/vote.dto';
+import { SettleEventDto } from './dto/settle-event.dto';
 
 @ApiTags('events')
 @ApiBearerAuth()
@@ -57,5 +58,17 @@ export class EventsController {
   @ApiOperation({ summary: 'Rejeter une proposition (admin)' })
   reject(@CurrentFamily() fam: FamilyContext, @Param('id') id: string) {
     return this.events.adminReject(fam, id);
+  }
+
+  @Post(':id/close')
+  @ApiOperation({ summary: 'Clôturer un évènement actif avant échéance (admin)' })
+  close(@CurrentFamily() fam: FamilyContext, @Param('id') id: string) {
+    return this.events.adminClose(fam, id);
+  }
+
+  @Post(':id/settle')
+  @ApiOperation({ summary: 'Enregistrer le versement au responsable (admin)' })
+  settle(@CurrentFamily() fam: FamilyContext, @Param('id') id: string, @Body() dto: SettleEventDto) {
+    return this.events.settle(fam, id, dto);
   }
 }

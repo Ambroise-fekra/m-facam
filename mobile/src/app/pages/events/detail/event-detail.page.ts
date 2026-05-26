@@ -10,6 +10,8 @@ import {
   IonContent,
   IonHeader,
   IonInput,
+  IonSelect,
+  IonSelectOption,
   IonTitle,
   IonToolbar,
   LoadingController,
@@ -33,6 +35,8 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
     IonTitle,
     IonContent,
     IonInput,
+    IonSelect,
+    IonSelectOption,
     IonButton,
   ],
   template: `
@@ -109,13 +113,54 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
             Confirmer l'allocation
           </ion-button>
         </div>
+
+        <div class="facam-card" *ngIf="auth.isAdmin">
+          <p class="t-muted small">Administrateur : si les fonds sont prêts, vous pouvez clôturer maintenant (sinon clôture automatique à l'échéance).</p>
+          <ion-button expand="block" fill="outline" color="warning" (click)="closeNow()">🏁 Clôturer maintenant</ion-button>
+        </div>
       </ng-container>
 
       <!-- CLOSED -->
-      <div class="facam-card" *ngIf="event.status === 'closed'">
-        <div class="row"><span>💶 Total versé au responsable</span><strong>{{ event.totalCollected }} €</strong></div>
-        <div class="row"><span>📅 Clôturé le</span><strong>{{ event.closedAt | date: 'dd/MM/yyyy' }}</strong></div>
-      </div>
+      <ng-container *ngIf="event.status === 'closed'">
+        <div class="facam-card">
+          <div class="row"><span>💶 Total collecté</span><strong>{{ event.totalCollected }} €</strong></div>
+          <div class="row"><span>👤 À remettre à</span><strong>{{ event.responsibleName }}</strong></div>
+          <div class="row"><span>📅 Clôturé le</span><strong>{{ event.closedAt | date: 'dd/MM/yyyy' }}</strong></div>
+        </div>
+
+        <!-- Versement enregistré -->
+        <div class="facam-card paid" *ngIf="event.payoutStatus === 'done'">
+          <h3 class="h-title">✅ Versement effectué</h3>
+          <div class="row"><span>Mode</span><strong>{{ methodLabel(event.payoutMethod) }}</strong></div>
+          <div class="row" *ngIf="event.payoutNote"><span>Note</span><strong>{{ event.payoutNote }}</strong></div>
+          <div class="row"><span>Enregistré le</span><strong>{{ event.payoutAt | date: 'dd/MM/yyyy' }}</strong></div>
+        </div>
+
+        <!-- Versement en attente -->
+        <ng-container *ngIf="event.payoutStatus !== 'done'">
+          <div class="facam-card pending" *ngIf="!auth.isAdmin">
+            ⏳ <strong>{{ event.totalCollected }} €</strong> à remettre à {{ event.responsibleName }}.
+            En attente de l'enregistrement du versement par l'administrateur.
+          </div>
+          <div class="facam-card" *ngIf="auth.isAdmin">
+            <h3 class="h-title">💸 Enregistrer le versement</h3>
+            <p class="t-muted small">Remettez <strong>{{ event.totalCollected }} €</strong> à {{ event.responsibleName }} par le canal de votre choix, puis enregistrez-le ici.</p>
+            <label class="fld-label req">Mode de versement</label>
+            <ion-select class="fld" interface="alert" [(ngModel)]="payoutMethod" placeholder="Choisir">
+              <ion-select-option value="transfer">Virement bancaire</ion-select-option>
+              <ion-select-option value="cash">Espèces</ion-select-option>
+              <ion-select-option value="cheque">Chèque</ion-select-option>
+              <ion-select-option value="paypal">PayPal</ion-select-option>
+              <ion-select-option value="other">Autre</ion-select-option>
+            </ion-select>
+            <label class="fld-label">Note (optionnel)</label>
+            <ion-input class="fld" [(ngModel)]="payoutNote" placeholder="Réf. virement, date, précisions…"></ion-input>
+            <ion-button expand="block" class="ion-margin-top" color="success" [disabled]="!payoutMethod" (click)="settle()">
+              Marquer comme versé
+            </ion-button>
+          </div>
+        </ng-container>
+      </ng-container>
     </ion-content>
   `,
   styles: [
@@ -133,6 +178,9 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
       .t-yes { color: #34d399; } .t-no { color: #f87171; } .t-q { color: #cbd5e1; }
       .vote-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
       .admin-box { margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,.15); }
+      .paid { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.3); }
+      .pending { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.35); color: #fde68a; line-height: 1.5; }
+      .pending strong { color: #fff; }
     `,
   ],
 })
@@ -150,6 +198,8 @@ export class EventDetailPage implements OnInit {
   balance: MyBalance | null = null;
   amount = 0;
   myVote: VoteValue | null = null;
+  payoutMethod = '';
+  payoutNote = '';
 
   ngOnInit() {
     this.reload();
@@ -240,6 +290,51 @@ export class EventDetailPage implements OnInit {
       const t = await this.toastCtrl.create({ message: 'Proposition rejetée', color: 'medium', duration: 2000 });
       await t.present();
       this.router.navigateByUrl('/events');
+    });
+  }
+
+  methodLabel(m?: string | null): string {
+    const map: Record<string, string> = {
+      transfer: 'Virement bancaire',
+      cash: 'Espèces',
+      cheque: 'Chèque',
+      paypal: 'PayPal',
+      other: 'Autre',
+    };
+    return (m && map[m]) || '—';
+  }
+
+  async closeNow() {
+    if (!this.event) return;
+    const confirm = await this.alertCtrl.create({
+      header: 'Clôturer maintenant ?',
+      message: 'Les cotisations seront arrêtées. Vous pourrez ensuite enregistrer le versement au responsable.',
+      buttons: [{ text: 'Annuler', role: 'cancel' }, { text: 'Clôturer', role: 'confirm' }],
+    });
+    await confirm.present();
+    const { role } = await confirm.onDidDismiss();
+    if (role !== 'confirm') return;
+    this.api.closeEvent(this.event.id).subscribe(async () => {
+      const t = await this.toastCtrl.create({ message: 'Évènement clôturé', color: 'success', duration: 2000 });
+      await t.present();
+      this.reload();
+    });
+  }
+
+  async settle() {
+    if (!this.event || !this.payoutMethod) return;
+    const loading = await this.loadingCtrl.create({ message: 'Enregistrement…' });
+    await loading.present();
+    this.api.settleEvent(this.event.id, this.payoutMethod, this.payoutNote || undefined).subscribe({
+      next: async () => {
+        await loading.dismiss();
+        const t = await this.toastCtrl.create({ message: 'Versement enregistré', color: 'success', duration: 2000 });
+        await t.present();
+        this.payoutMethod = '';
+        this.payoutNote = '';
+        this.reload();
+      },
+      error: () => loading.dismiss(),
     });
   }
 

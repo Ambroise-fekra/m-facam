@@ -64,7 +64,13 @@ export interface FamilyEvent {
   myAllocation: string;
   tally?: VoteTally | null;
   myVote?: VoteValue | null;
+  payoutStatus?: 'pending' | 'done';
+  payoutMethod?: string | null;
+  payoutNote?: string | null;
+  payoutAt?: string | null;
 }
+
+export type PayoutMethod = 'transfer' | 'cash' | 'cheque' | 'paypal' | 'other';
 
 export interface MemberChild {
   id: string;

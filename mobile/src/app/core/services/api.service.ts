@@ -153,6 +153,14 @@ export class ApiService {
     return this.http.post<{ status: string }>(`${this.base}/events/${eventId}/reject`, {});
   }
 
+  closeEvent(eventId: string) {
+    return this.http.post<FamilyEvent>(`${this.base}/events/${eventId}/close`, {});
+  }
+
+  settleEvent(eventId: string, method: string, note?: string) {
+    return this.http.post<FamilyEvent>(`${this.base}/events/${eventId}/settle`, { method, note });
+  }
+
   allocate(p: AllocationPayload) {
     return this.http.post<{ id: string; amount: string }>(`${this.base}/allocations`, p);
   }

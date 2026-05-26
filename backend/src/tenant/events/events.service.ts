@@ -15,6 +15,7 @@ import { Event } from './event.entity';
 import { EventVote, VoteValue } from './event-vote.entity';
 import { Allocation } from '../allocations/allocation.entity';
 import { CreateEventDto } from './dto/create-event.dto';
+import { SettleEventDto } from './dto/settle-event.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../../payments/payment-provider.interface';
 import { Family } from '../../master/families/family.entity';
@@ -113,10 +114,17 @@ export class EventsService {
       totalCollected: await this.totalCollectedForEvent(ds, e.id),
       myAllocation: await this.myAllocationForEvent(ds, e.id, fam.memberId),
     };
+    const withPayout = {
+      ...base,
+      payoutStatus: e.payoutStatus,
+      payoutMethod: e.payoutMethod,
+      payoutNote: e.payoutNote,
+      payoutAt: e.payoutAt,
+    };
     if (e.status === 'proposed') {
-      return { ...base, tally: await this.tally(ds, e.id), myVote: await this.myVote(ds, e.id, fam.memberId) };
+      return { ...withPayout, tally: await this.tally(ds, e.id), myVote: await this.myVote(ds, e.id, fam.memberId) };
     }
-    return { ...base, tally: null, myVote: null };
+    return { ...withPayout, tally: null, myVote: null };
   }
 
   private async totalCollectedForEvent(ds: DataSource, eventId: string): Promise<string> {
@@ -304,31 +312,61 @@ export class EventsService {
     const due = await repo.find({
       where: { status: 'active', deadline: LessThanOrEqual(new Date()) },
     });
+    const ctx = { identifier: family.identifier, memberId: '', familyId: family.id, isAdmin: false } as FamilyContext;
     for (const event of due) {
       const total = await this.totalCollectedForEvent(ds, event.id);
       const responsible = await ds.getRepository(Member).findOne({ where: { id: event.responsibleId } });
-      if (!responsible) {
-        this.logger.warn(`Event ${event.id}: responsible missing, skipping`);
-        continue;
-      }
-      const receiverEmail = responsible.paypalEmail ?? responsible.email;
-      if (!receiverEmail) {
-        // Responsible has no payout target (e.g. created without email). Skip the
-        // auto-payout so funds aren't lost; an admin can settle it manually.
-        this.logger.warn(`Event ${event.id}: responsible has no email/PayPal, skipping auto-payout`);
-        continue;
-      }
-      const payoutTx = await this.payments.payout({
-        receiverEmail,
-        amountEur: Number(total),
-        note: `FACAM event "${event.title}"`,
-      });
+      // Payout is manual: close the event and leave payoutStatus 'pending' so the
+      // admin records how the funds are handed over (transfer/cash/cheque/PayPal).
       event.status = 'closed';
       event.closedAt = new Date();
-      event.payoutPaypalTx = payoutTx;
       await repo.save(event);
-      this.logger.log(`Event ${event.id} closed and ${total}€ paid to ${receiverEmail}`);
+      const who = responsible ? `${responsible.firstName} ${responsible.lastName}` : 'au responsable';
+      await this.notifications.broadcast(ctx, 'event_closed_payout', {
+        title: '🏁 Évènement clôturé',
+        body: `"${event.title}" est clôturé. ${total}€ à remettre à ${who} — l'administrateur enregistrera le versement.`,
+        payload: { eventId: event.id, action: 'settle' },
+      });
+      this.logger.log(`Event ${event.id} closed; ${total}€ awaiting manual payout`);
     }
+  }
+
+  // ---------- Closure & manual payout ----------
+
+  /** Admin closes an active event before its deadline (funds ready early). */
+  async adminClose(fam: FamilyContext, eventId: string) {
+    if (!fam.isAdmin) throw new ForbiddenException('Réservé à l\'administrateur');
+    const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
+    const repo = ds.getRepository(Event);
+    const event = await repo.findOne({ where: { id: eventId } });
+    if (!event) throw new NotFoundException('Event not found');
+    if (event.status !== 'active') throw new BadRequestException('Seul un évènement actif peut être clôturé');
+    event.status = 'closed';
+    event.closedAt = new Date();
+    await repo.save(event);
+    return this.findOne(fam, eventId);
+  }
+
+  /** Admin records the manual hand-over of the funds to the responsible. */
+  async settle(fam: FamilyContext, eventId: string, dto: SettleEventDto) {
+    if (!fam.isAdmin) throw new ForbiddenException('Réservé à l\'administrateur');
+    const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
+    const repo = ds.getRepository(Event);
+    const event = await repo.findOne({ where: { id: eventId } });
+    if (!event) throw new NotFoundException('Event not found');
+    if (event.status !== 'closed') {
+      throw new BadRequestException('Seul un évènement clôturé peut être marqué comme versé');
+    }
+    if (event.payoutStatus === 'done') {
+      throw new BadRequestException('Ce versement est déjà enregistré');
+    }
+    event.payoutStatus = 'done';
+    event.payoutMethod = dto.method;
+    event.payoutNote = dto.note ?? null;
+    event.payoutAt = new Date();
+    event.payoutById = fam.memberId;
+    await repo.save(event);
+    return this.findOne(fam, eventId);
   }
 }
 

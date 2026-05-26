@@ -55,7 +55,7 @@ import {
       <ul>
         <li>Sur un évènement actif, vous <strong>allouez</strong> le montant de votre choix <strong>depuis votre part</strong> de la caisse.</li>
         <li>L'allocation <strong>diminue votre solde</strong> et alimente la cagnotte de l'évènement.</li>
-        <li>À l'<strong>échéance</strong>, l'évènement est clôturé et le total est <strong>versé au responsable</strong> désigné (PayPal).</li>
+        <li>À l'<strong>échéance</strong>, l'évènement est clôturé. L'<strong>administrateur remet le total au responsable</strong> par le canal choisi (virement, espèces, chèque ou PayPal) et <strong>enregistre le versement</strong> dans l'app.</li>
       </ul>
 
       <h2 class="g-h2">📊 Soldes, transactions & suivi</h2>

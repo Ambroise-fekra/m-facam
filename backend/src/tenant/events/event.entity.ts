@@ -66,6 +66,23 @@ export class Event {
   @Column({ name: 'payout_paypal_tx', type: 'varchar', length: 128, nullable: true })
   payoutPaypalTx: string | null;
 
+  /** Remise au responsable : effectuée manuellement par l'admin. */
+  @Column({ name: 'payout_status', type: 'varchar', length: 16, default: 'pending' })
+  payoutStatus: 'pending' | 'done';
+
+  /** transfer | cash | cheque | paypal | other */
+  @Column({ name: 'payout_method', type: 'varchar', length: 16, nullable: true })
+  payoutMethod: string | null;
+
+  @Column({ name: 'payout_note', type: 'varchar', length: 255, nullable: true })
+  payoutNote: string | null;
+
+  @Column({ name: 'payout_at', type: 'timestamptz', nullable: true })
+  payoutAt: Date | null;
+
+  @Column({ name: 'payout_by', type: 'uuid', nullable: true })
+  payoutById: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
