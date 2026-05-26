@@ -57,3 +57,6 @@ ScreenShots/
 .startup.log
 .serve.log
 .serve2.log
+
+# Imports — données personnelles (fichiers Excel sources et normalisés)
+imports/*.xlsx
