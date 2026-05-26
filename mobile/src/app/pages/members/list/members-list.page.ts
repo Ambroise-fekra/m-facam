@@ -9,6 +9,7 @@ import {
   IonHeader,
   IonTitle,
   IonToolbar,
+  ActionSheetController,
   ToastController,
 } from '@ionic/angular/standalone';
 import { Browser } from '@capacitor/browser';
@@ -125,6 +126,7 @@ import { Member } from '../../../core/models/api.models';
 export class MembersListPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toastCtrl = inject(ToastController);
+  private readonly actionSheetCtrl = inject(ActionSheetController);
   private readonly whatsapp = inject(WhatsappService);
   private readonly images = inject(ImageService);
   readonly auth = inject(AuthService);
@@ -153,8 +155,25 @@ export class MembersListPage implements OnInit {
     return this.auth.isAdmin || m.id === this.auth.snapshot?.member?.id;
   }
 
+  /** Offers "recrop existing" vs "pick new" when a photo already exists. */
+  private async chooseImage(existing: string | null | undefined, header: string): Promise<string | null> {
+    if (!existing) return this.images.pickCropped();
+    const sheet = await this.actionSheetCtrl.create({
+      header,
+      buttons: [
+        { text: '📐 Recadrer la photo actuelle', data: 'crop' },
+        { text: '🖼️ Choisir une nouvelle photo', data: 'pick' },
+        { text: 'Annuler', role: 'cancel' },
+      ],
+    });
+    await sheet.present();
+    const { data, role } = await sheet.onWillDismiss<string>();
+    if (role === 'cancel' || !data) return null;
+    return data === 'crop' ? this.images.cropExisting(existing) : this.images.pickCropped();
+  }
+
   async changePhoto(m: Member) {
-    const dataUrl = await this.images.pickCropped();
+    const dataUrl = await this.chooseImage(m.photo, `Photo de ${m.firstName}`);
     if (!dataUrl) return;
     this.api.setMemberPhoto(m.id, dataUrl).subscribe(async () => {
       const t = await this.toastCtrl.create({ message: 'Photo mise à jour', color: 'success', duration: 1500 });
@@ -164,7 +183,7 @@ export class MembersListPage implements OnInit {
   }
 
   async changeLogo() {
-    const dataUrl = await this.images.pickCropped();
+    const dataUrl = await this.chooseImage(this.info?.photo, 'Logo de la famille');
     if (!dataUrl) return;
     this.api.updateFamily({ photo: dataUrl }).subscribe(async () => {
       const t = await this.toastCtrl.create({ message: 'Logo mis à jour', color: 'success', duration: 1500 });

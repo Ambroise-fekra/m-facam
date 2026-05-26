@@ -14,7 +14,7 @@ import { ModalController } from '@ionic/angular/standalone';
 export class ImageService {
   private readonly modalCtrl = inject(ModalController);
 
-  /** Pick + crop (recommended for round avatars). */
+  /** Pick a new image and open the crop modal. */
   async pickCropped(maxSize = 256, quality = 85): Promise<string | null> {
     const file = await this.pickFile();
     if (!file) return null;
@@ -24,6 +24,16 @@ export class ImageService {
     } catch {
       return null;
     }
+    return this.openCropper(base64, maxSize, quality);
+  }
+
+  /** Re-crop a photo that's already been picked/saved (no new file dialog). */
+  async cropExisting(imageBase64: string, maxSize = 256, quality = 85): Promise<string | null> {
+    if (!imageBase64) return null;
+    return this.openCropper(imageBase64, maxSize, quality);
+  }
+
+  private async openCropper(base64: string, maxSize: number, quality: number): Promise<string | null> {
     // Lazy-import the modal page to keep it out of the initial bundle.
     const { PhotoCropPage } = await import('../../pages/photo-crop/photo-crop.page');
     const modal = await this.modalCtrl.create({
