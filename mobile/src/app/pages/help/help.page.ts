@@ -24,11 +24,12 @@ import {
       <h1 class="g-h1">Guide d'utilisation</h1>
       <p class="t-muted intro">Family Cash Management — gérez ensemble la caisse de votre famille : cotisations, évènements et solidarité, <strong>en toute confidentialité et transparence</strong>. L'application combine les deux : chacun voit la caisse globale, les évènements et le décompte des votes, mais <strong>seules les informations financières personnelles</strong> (sa part, ses cotisations, ses allocations) sont privées.</p>
 
-      <h2 class="g-h2">👑 La famille & l'administrateur</h2>
+      <h2 class="g-h2">👑 La famille, l'administrateur & le chef de famille</h2>
       <ul>
         <li>Une famille est <strong>créée une seule fois</strong> par un <strong>administrateur</strong> (essai gratuit 30 jours).</li>
         <li>À la création, un <strong>identifiant de famille</strong> unique (ex. <em>FAM-DUPONT-0001</em>) est généré : il sert à <strong>tous les membres</strong> pour se connecter (avec leur email + mot de passe). Notez-le précieusement.</li>
-        <li>L'admin paramètre l'<strong>email PayPal</strong> de la famille et le <strong>lien du groupe WhatsApp</strong>.</li>
+        <li>L'admin paramètre l'<strong>email PayPal</strong> de la famille, le <strong>lien du groupe WhatsApp</strong>, et désigne un <strong>chef de famille</strong> parmi les membres actifs.</li>
+        <li>Le <strong>chef de famille</strong> apparaît sur le tableau de bord avec son téléphone, à côté de l'admin. Il dispose des mêmes droits que l'admin pour <strong>activer la connexion</strong> d'un membre et <strong>marquer un décès</strong>.</li>
       </ul>
 
       <h2 class="g-h2">👨‍👩‍👧 Les membres</h2>
@@ -36,7 +37,8 @@ import {
         <li>Les membres sont <strong>créés par l'admin</strong> (nom, email, téléphone, filiation père/mère). L'admin les <strong>invite par WhatsApp ou email</strong> via un lien : chaque membre choisit alors <strong>son propre mot de passe</strong>.</li>
         <li>Chaque membre connecté peut <strong>déclarer ses propres enfants</strong> depuis « Mon profil » → 👶 <em>Ma descendance</em> (prénom, nom, sexe obligatoires). Les enfants sont créés <strong>inactifs</strong> et seront <strong>activés par l'admin ou le chef de famille</strong> le moment venu (par exemple à leur majorité), en cliquant sur « <strong>Activer la connexion</strong> ».</li>
         <li>Un membre « inactif » apparaît dans l'arbre généalogique mais ne compte pas dans le quorum et ne peut pas se connecter ni participer.</li>
-        <li>Chacun peut ajouter sa <strong>photo</strong> ; l'admin peut aussi gérer les photos.</li>
+        <li>Un membre peut être marqué <strong>🕯️ décédé(e)</strong> (case à cocher + date) par l'admin ou le chef de famille — il est alors automatiquement <strong>désactivé</strong> (exclu du quorum, non sélectionnable comme responsable ou emprunteur) mais reste dans l'arbre généalogique.</li>
+        <li>Chacun peut ajouter sa <strong>photo</strong> avec <strong>recadrage rond</strong> (glisser/zoomer) ; le bouton 📷 permet de recadrer une photo déjà enregistrée ou d'en choisir une nouvelle. L'admin peut aussi gérer les photos des autres.</li>
       </ul>
 
       <h2 class="g-h2">💳 Cotiser (alimenter la caisse)</h2>
@@ -47,9 +49,11 @@ import {
 
       <h2 class="g-h2">🗳️ Proposer & voter un évènement</h2>
       <ul>
-        <li>Tout membre peut <strong>proposer un évènement</strong> (mariage, décès, projet…) avec un montant objectif, une date et une échéance.</li>
+        <li>Tout membre peut <strong>proposer un évènement</strong> (mariage, décès, projet, anniversaire…) avec une date et une échéance.</li>
+        <li>Le <strong>montant objectif est facultatif</strong> (laissez à 0 si vous ne fixez pas de montant). Une <strong>suggestion par membre</strong> peut aussi être indiquée (montant indicatif à cotiser par chacun).</li>
         <li>La proposition est <strong>soumise au vote</strong> de la famille : vote <strong>anonyme</strong> (pour/contre), modifiable jusqu'à l'échéance.</li>
-        <li>L'évènement devient <strong>actif</strong> s'il obtient <strong>2/3 de OUI</strong> avec un <strong>quorum de 2/3</strong> des membres. L'<strong>admin</strong> peut aussi l'<strong>activer ou rejeter</strong> directement (cas urgent).</li>
+        <li>L'évènement devient <strong>actif</strong> s'il obtient <strong>au moins 2/3 de OUI</strong> avec un <strong>quorum de 2/3</strong> des membres actifs. L'<strong>admin</strong> peut aussi l'<strong>activer ou rejeter</strong> directement (cas urgent).</li>
+        <li>Sur la fiche, la règle de quorum et de majorité s'affiche clairement avec le nombre absolu requis (ex. <em>Quorum 4/7 — 2/3 sur 10 membres actifs</em>).</li>
       </ul>
 
       <h2 class="g-h2">🙋 Participer financièrement</h2>
@@ -78,21 +82,26 @@ import {
 
       <h2 class="g-h2">📊 Soldes, transactions & suivi</h2>
       <ul>
-        <li><strong>Tableau de bord</strong> : la <strong>caisse familiale</strong> (total) et <strong>votre part</strong>.</li>
+        <li><strong>Tableau de bord</strong> : la <strong>caisse familiale disponible</strong> (gros chiffre doré). Si des prêts sont en cours, le <strong>reste à rembourser</strong> apparaît juste en dessous (déjà décaissé de la caisse, en attente du remboursement).</li>
+        <li><strong>Votre part</strong> dans la caisse + total cotisé et total alloué.</li>
         <li><strong>Mes transactions</strong> : vos <strong>crédits</strong> (cotisations) et <strong>débits</strong> (allocations) + votre solde.</li>
-        <li><strong>Évènements</strong> : barre de <strong>montant</strong> (collecté/objectif) et barre de <strong>temps</strong> (jours restants), votre part dans chaque cagnotte.</li>
+        <li><strong>Évènements</strong> : barre de <strong>montant</strong> (collecté/objectif si fixé) et barre de <strong>temps</strong> (jours restants), votre part/contribution dans chaque évènement.</li>
+        <li>Trois flux d'argent distincts : <strong>cotisations</strong> à la caisse (augmentent votre part), <strong>allocations</strong> à un évènement classique (depuis votre part), et <strong>contributions ciblées</strong> aux évènements externes ou remboursements de prêt (ne touchent pas votre part).</li>
       </ul>
 
       <h2 class="g-h2">🌳 Famille & arbre généalogique</h2>
       <ul>
-        <li>La page <strong>Famille</strong> liste tous les membres (parents/enfants, photos), avec le bouton <strong>WhatsApp du groupe</strong>.</li>
-        <li>L'<strong>arbre généalogique</strong> se construit automatiquement à partir des liens père/mère.</li>
+        <li>La page <strong>Famille</strong> liste tous les membres (parents/enfants, photos), avec les boutons <strong>WhatsApp</strong> par personne et le bouton <strong>groupe WhatsApp</strong>.</li>
+        <li>L'<strong>arbre généalogique</strong> s'affiche par <strong>couples</strong> (père ❤️ mère sur la même ligne) avec les enfants indentés en dessous. Bordure colorée par sexe (♂ bleu / ♀ rose / ⚪ autre) pour repérer instantanément les rôles.</li>
+        <li>Une page <strong>🎂 Anniversaires</strong> affiche les anniversaires du mois en cours et du mois suivant (les défunts sont exclus par respect).</li>
       </ul>
 
       <h2 class="g-h2">🔔 Notifications</h2>
       <ul>
         <li>À chaque <strong>cotisation</strong> (la caisse monte) et chaque <strong>allocation</strong> (une cagnotte monte).</li>
         <li>À la <strong>proposition d'un évènement</strong> (à voter) et à son <strong>activation</strong>.</li>
+        <li>À la <strong>clôture d'un évènement</strong> avec rappel de la remise des fonds au responsable.</li>
+        <li>En cas de <strong>prêt impayé à l'échéance</strong> : la famille est avertie et le compte de l'emprunteur est automatiquement bloqué.</li>
         <li>Rappels d'<strong>abonnement</strong> avant échéance.</li>
         <li><em>Anniversaires : notification automatique (et message WhatsApp) prévue dans une prochaine version.</em></li>
       </ul>

@@ -15,14 +15,20 @@ Chaque famille crée son espace via un abonnement annuel **20 €/an** (1 mois d
 
 | Domaine | Description |
 | --- | --- |
-| Cotisations | Versements PayPal sur la caisse familiale, alimentant le solde personnel du membre |
-| Évènements | Mariages, décès, projets, anniversaires ; date d'échéance, montant cible, responsable |
-| Allocations | Chaque membre décide combien il alloue à un évènement depuis son propre solde |
-| Confidentialité | Chaque membre voit son solde et ses propres parts ; jamais celles des autres |
-| Arbre généalogique | Ascendants / descendants pour chaque membre, vue arbre interactive |
-| Notifications | Création d'évènement, cotisations, allocations, anniversaires, rappel essai |
-| Clôture automatique | À la date d'échéance, versement PayPal au responsable |
-| Administration | Identifiant famille, PayPal famille, WhatsApp, abonnement |
+| **Rôles** | Admin (création/gestion) + **chef de famille** (désigné, mêmes pouvoirs pour activer un membre et marquer un décès) ; affichés ensemble sur le dashboard avec leurs téléphones |
+| **Membres** | Créés par l'admin OU **déclarés par chaque parent** depuis son profil (descendance). Statuts : actif / inactif / 🚫 bloqué / 🕯️ décédé |
+| **Cotisations caisse** | Versements PayPal sur la caisse familiale, alimentant le solde personnel du membre |
+| **Évènements classiques** | Mariages, décès, projets, anniversaires, autres ; objectif facultatif + suggestion par membre, date, échéance, responsable |
+| **💰 Prêt à un membre** | Demandé par l'emprunteur, voté (emprunteur exclu), plafond 1/5 caisse, max 2 actifs ; remboursements par l'emprunteur uniquement ; blocage automatique en cas d'impayé |
+| **🎁 Évènement externe** | Cagnotte hors solidarité commune : cotisations ciblées qui ne touchent ni la part du membre ni la caisse globale |
+| **Vote** | Quorum 2/3 des actifs + majorité 2/3 des votants ; affichage explicite des règles avec ✅/❌ |
+| **Clôture** | À l'échéance, l'admin enregistre la remise au responsable (virement / espèces / chèque / PayPal + note) |
+| **Confidentialité** | Chaque membre voit son solde et ses propres parts ; jamais celles des autres. Vote anonyme |
+| **Arbre généalogique** | Affichage par **couples** (père ❤️ mère + enfants), bordure colorée par sexe |
+| **Anniversaires** | Mois courant + suivant, défunts exclus par respect |
+| **Photos** | Avatar et logo famille avec **recadrage rond** (glisser/zoomer, modale tactile) |
+| **Notifications** | Cotisations, allocations, propositions, activations, clôtures, prêts impayés, rappels d'abonnement |
+| **Administration** | Identifiant famille, PayPal famille, WhatsApp, chef de famille, abonnement, blocage/déblocage |
 
 ## Architecture multi-tenant
 

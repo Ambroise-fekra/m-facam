@@ -16,10 +16,13 @@ cd ..\mobile;  npm install
 
 ```powershell
 cd C:\Dev\M-FACAM
-docker compose up -d postgres        # PostgreSQL 16 sur localhost:5432
+docker compose up -d postgres        # PostgreSQL 16 sur localhost:5544 (cf .env)
 cd backend
-npm run migrate:master               # crée facam_master + tables
-npm run migrate:template             # crée facam_template + tables
+npm run migrate:master               # facam_master + tables (idempotent)
+npm run migrate:template             # facam_template + tables (idempotent)
+npm run migrate:tenants              # rejoue les migrations tenant sur toutes les
+                                     # bases facam_FAM_* existantes (utile après
+                                     # une évolution de schéma)
 npm run seed                         # alimente la famille démo FAM-DUPONT-DEMO
 npm run start:dev                    # NestJS sur http://localhost:3000/api
 ```
@@ -106,6 +109,49 @@ docker compose down -v               # supprime PostgreSQL + volumes (toutes les
 docker compose up -d postgres
 cd backend; npm run migrate:master; npm run migrate:template; npm run seed
 ```
+
+## 6bis. Scénarios fonctionnels à dérouler
+
+### Chef de famille
+1. Famille → admin clique **« Désigner »** dans la carte « Chef de famille » → choisir un membre actif.
+2. Dashboard : la carte « 👑 Admin · ⭐ Chef de famille » affiche les deux noms + téléphones cliquables.
+
+### Photo (avatar / logo) avec recadrage
+1. Famille → tap sur un avatar → **« Recadrer la photo actuelle »** OU **« Choisir une nouvelle photo »**.
+2. Glisser/zoomer dans le rond → **Valider**.
+
+### Déclarer sa descendance (sans passer par l'admin)
+1. Profil → section **« 👶 Ma descendance »** → ajouter un enfant (prénom + nom + sexe obligatoires).
+2. L'enfant apparaît dans Famille avec badge **« 💤 Inactif »**.
+3. À sa majorité, admin/chef ajoute son email → clic **« 🔓 Activer la connexion »** → copier / WhatsApp le lien d'invitation.
+
+### Marquer un décès
+1. Modifier le profil d'un membre (admin/chef requis) → cocher **« 🕯️ Membre décédé(e) »** → date pré-remplie aujourd'hui.
+2. Le membre porte le badge **« 🕯️ Décédé(e) le … »** ; il disparaît de la page Anniversaires et n'est plus compté dans le quorum.
+
+### Évènement classique avec objectif facultatif + suggestion par membre
+1. Proposer un évènement → laisser le slider **objectif à 0** (« Pas d'objectif fixé »).
+2. Régler le slider **« Suggestion par membre »** sur une valeur (ex. 50 €).
+3. Voter → activer → allouer. La suggestion s'affiche sur la fiche pour orienter chaque membre.
+
+### Évènement externe (cagnotte ciblée hors solidarité)
+1. Proposer un évènement de type **« 🎁 Évènement externe »**.
+2. Une fois actif, n'importe quel membre clique **« Cotiser ciblé »** sur la fiche : choisir un montant + mode (virement/espèces/chèque/PayPal).
+3. Vérifier que **la caisse globale du dashboard ne bouge pas** (contrairement à une allocation classique).
+4. À l'échéance, admin enregistre la remise au responsable (mode + note).
+
+### Prêt à un membre
+1. Proposer un évènement **« 💰 Prêt à un membre »** (le proposant = emprunteur).
+2. Vote (l'emprunteur ne peut pas voter ; quorum sur les autres actifs).
+3. Activation → la fiche affiche « ⏳ En attente de la remise des fonds » → admin clique **« Marquer comme versé »** avec mode/note → **la caisse baisse du montant du prêt**, l'encart « 💸 Reste à rembourser » apparaît sur le dashboard.
+4. L'emprunteur ouvre la fiche → **« ↩️ Enregistrer un remboursement »** → la caisse remonte progressivement.
+5. À 100 % remboursé → clôture auto + déblocage auto si jamais bloqué.
+
+### Vote — affichage clair
+1. Sur un évènement *proposé*, vérifier que la fiche affiche :
+   - **Quorum** : `voters / quorumNeeded (2/3 des N membres actifs)` ✅/❌
+   - **Majorité** : `yes / majorityNeeded OUI (2/3 des votants)` ✅/❌
+   - **État** : *Adopté* / *En attente* / *Aucun vote*
 
 ## 7. Tests automatisés
 
