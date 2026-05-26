@@ -191,3 +191,32 @@ ion-textarea.fld-light {
 /* Radio outline a bit more visible on dark */
 .alert-radio-inner.sc-ion-alert-md { border-color: #cbd5e1; }
 .alert-radio-icon.sc-ion-alert-md { border-color: #94a3b8; }
+
+/* ===== Action sheet (menu de choix : photo, etc.) — texte blanc sur fond sombre =====
+   Même problème que l'alerte : sans override, le texte reste sombre sur fond
+   sombre en mode sombre. */
+.action-sheet-wrapper,
+.action-sheet-container,
+.action-sheet-group {
+  --background: #1e293b !important;
+  background: #1e293b !important;
+}
+.action-sheet-title,
+.action-sheet-sub-title,
+.action-sheet-button,
+.action-sheet-button .action-sheet-button-inner,
+.action-sheet-button .action-sheet-icon {
+  color: #f1f5f9 !important;
+}
+/* Bouton "Annuler" en gris discret */
+.action-sheet-cancel,
+.action-sheet-cancel .action-sheet-button-inner {
+  color: #94a3b8 !important;
+}
+/* Séparateurs entre boutons un peu visibles sur fond sombre */
+.action-sheet-group .action-sheet-button {
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.action-sheet-group .action-sheet-button:last-child {
+  border-bottom: none;
+}
