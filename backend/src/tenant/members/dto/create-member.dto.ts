@@ -34,9 +34,10 @@ export class CreateMemberDto {
   @IsDateString()
   birthDate?: string;
 
-  @IsOptional()
+  // Required: needed so the member can be picked as father (M) or mother (F)
+  // in the genealogy filiation.
   @IsEnum(['M', 'F', 'O'])
-  gender?: 'M' | 'F' | 'O';
+  gender: 'M' | 'F' | 'O';
 
   @IsOptional()
   @IsEmail()

@@ -64,12 +64,12 @@ import { Member } from '../../../core/models/api.models';
         <label class="fld-label">Téléphone</label>
         <ion-input class="fld" type="tel" formControlName="phone" placeholder="+33 6 …"></ion-input>
 
-        <p class="hint" *ngIf="!form.value.canLogin">🌳 Proche <strong>décédé</strong> (arbre généalogique) qui ne se connectera jamais : laissez « peut se connecter » désactivé — <strong>email et téléphone facultatifs</strong>. Le prénom et le nom suffisent.</p>
+        <p class="hint" *ngIf="!form.value.canLogin">🌳 Proche <strong>décédé</strong> (arbre généalogique) qui ne se connectera jamais : laissez « peut se connecter » désactivé — <strong>email et téléphone facultatifs</strong>. Renseignez bien le <strong>sexe</strong> pour pouvoir le/la choisir comme <strong>père</strong> ou <strong>mère</strong>.</p>
 
         <label class="fld-label">Date de naissance</label>
         <ion-input class="fld" type="date" formControlName="birthDate"></ion-input>
 
-        <label class="fld-label">Sexe</label>
+        <label class="fld-label req">Sexe</label>
         <ion-select class="fld" formControlName="gender" interface="alert" placeholder="Choisir">
           <ion-select-option value="M">Masculin</ion-select-option>
           <ion-select-option value="F">Féminin</ion-select-option>
@@ -160,7 +160,7 @@ export class MemberAddPage implements OnInit {
     email: ['', [Validators.email]], // required only when canLogin (see ngOnInit)
     phone: [''],
     birthDate: [''],
-    gender: [''],
+    gender: ['', Validators.required],
     paypalEmail: [''],
     fatherId: [''],
     motherId: [''],

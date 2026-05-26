@@ -66,7 +66,7 @@ import { Member } from '../../core/models/api.models';
         <label class="fld-label">Date de naissance</label>
         <ion-input class="fld" type="date" formControlName="birthDate"></ion-input>
 
-        <label class="fld-label">Sexe</label>
+        <label class="fld-label req">Sexe</label>
         <ion-select class="fld" formControlName="gender" interface="alert" placeholder="Choisir">
           <ion-select-option value="M">Masculin</ion-select-option>
           <ion-select-option value="F">Féminin</ion-select-option>
@@ -120,7 +120,7 @@ export class ProfilePage implements OnInit {
     lastName: ['', Validators.required],
     phone: [''],
     birthDate: [''],
-    gender: [''],
+    gender: ['', Validators.required],
     paypalEmail: [''],
     fatherId: [''],
     motherId: [''],
