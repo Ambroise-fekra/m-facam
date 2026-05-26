@@ -134,13 +134,21 @@ export interface SubscriptionStatus {
   priceEur: string;
 }
 
-export interface TreeNode {
+export interface TreePerson {
   id: string;
   firstName: string;
   lastName: string;
+  gender: 'M' | 'F' | 'O' | null;
   birthDate: string | null;
-  fatherId: string | null;
-  motherId: string | null;
   photo: string | null;
+}
+
+export interface TreeUnion {
+  partner: TreePerson | null;
   children: TreeNode[];
+}
+
+export interface TreeNode {
+  person: TreePerson;
+  unions: TreeUnion[];
 }
