@@ -90,6 +90,8 @@ interface MemberUpdatePayload {
   paypalEmail?: string;
   fatherId?: string;
   motherId?: string;
+  /** YYYY-MM-DD or '' to clear. Admin/chef only on backend. */
+  deceasedAt?: string;
 }
 
 @Injectable({ providedIn: 'root' })

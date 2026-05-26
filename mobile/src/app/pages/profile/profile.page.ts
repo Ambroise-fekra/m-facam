@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   IonBackButton,
   IonButton,
   IonButtons,
+  IonCheckbox,
   IonContent,
   IonHeader,
   IonInput,
@@ -16,7 +17,7 @@ import {
   LoadingController,
   ToastController,
 } from '@ionic/angular/standalone';
-import { ApiService } from '../../core/services/api.service';
+import { ApiService, FamilyInfo } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Member } from '../../core/models/api.models';
 
@@ -26,6 +27,7 @@ import { Member } from '../../core/models/api.models';
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     IonHeader,
     IonToolbar,
     IonButtons,
@@ -35,6 +37,7 @@ import { Member } from '../../core/models/api.models';
     IonInput,
     IonSelect,
     IonSelectOption,
+    IonCheckbox,
     IonButton,
   ],
   template: `
@@ -88,6 +91,23 @@ import { Member } from '../../core/models/api.models';
           <ion-select-option [value]="''">— Aucune —</ion-select-option>
           <ion-select-option *ngFor="let m of females" [value]="m.id">{{ m.firstName }} {{ m.lastName }}</ion-select-option>
         </ion-select>
+
+        <!-- Décès : visible/éditable uniquement par admin ou chef de famille -->
+        <ng-container *ngIf="canMarkDeceased()">
+          <h3 class="h-title sec">🕯️ Décès</h3>
+          <div class="deceased-row">
+            <ion-checkbox
+              [checked]="isDeceasedChecked()"
+              (ionChange)="onDeceasedToggle($event)"
+            ></ion-checkbox>
+            <span>Membre décédé(e)</span>
+          </div>
+          <ng-container *ngIf="isDeceasedChecked()">
+            <label class="fld-label">Date du décès</label>
+            <ion-input class="fld" type="date" formControlName="deceasedAt"></ion-input>
+            <p class="t-muted small">Le membre sera automatiquement marqué inactif (exclu du quorum, non sélectionnable comme responsable).</p>
+          </ng-container>
+        </ng-container>
 
         <ion-button type="submit" expand="block" [disabled]="form.invalid" class="ion-margin-top">
           Enregistrer
@@ -150,6 +170,8 @@ import { Member } from '../../core/models/api.models';
       .h-sub { color: #fff; font-size: 1rem; margin: 18px 0 4px; }
       .empty { padding: 6px 0 0; }
       .small { font-size: .82rem; }
+      .deceased-row { display: flex; align-items: center; gap: 10px; color: #cbd5e1; margin: 8px 0 6px; }
+      .deceased-row ion-checkbox { --size: 22px; }
     `,
   ],
 })
@@ -175,7 +197,11 @@ export class ProfilePage implements OnInit {
     paypalEmail: [''],
     fatherId: [''],
     motherId: [''],
+    deceasedAt: [''],
   });
+
+  /** Family info needed to detect "I am the chef de famille" for permission checks. */
+  familyInfo: FamilyInfo | null = null;
 
   readonly childForm = this.fb.nonNullable.group({
     firstName: ['', Validators.required],
@@ -237,6 +263,7 @@ export class ProfilePage implements OnInit {
     this.targetId = routeId || myId;
     this.isSelf = this.targetId === myId;
 
+    this.api.familyInfo().subscribe((i) => (this.familyInfo = i));
     this.api.members().subscribe((list) => {
       this.members = list;
       const m = list.find((x) => x.id === this.targetId);
@@ -250,9 +277,33 @@ export class ProfilePage implements OnInit {
           paypalEmail: m.paypalEmail ?? '',
           fatherId: m.fatherId ?? '',
           motherId: m.motherId ?? '',
+          deceasedAt: m.deceasedAt ?? '',
         });
       }
     });
+  }
+
+  /** Admin or chef de famille may mark/un-mark a member as deceased. */
+  canMarkDeceased(): boolean {
+    const meId = this.auth.snapshot?.member?.id;
+    return this.auth.isAdmin || (!!meId && meId === this.familyInfo?.chief?.id);
+  }
+
+  isDeceasedChecked(): boolean {
+    return !!this.form.value.deceasedAt;
+  }
+
+  onDeceasedToggle(e: Event) {
+    const checked = (e as CustomEvent).detail?.checked;
+    if (checked) {
+      // default to today's date if no date already set
+      if (!this.form.value.deceasedAt) {
+        const today = new Date().toISOString().substring(0, 10);
+        this.form.controls.deceasedAt.setValue(today);
+      }
+    } else {
+      this.form.controls.deceasedAt.setValue('');
+    }
   }
 
   async submit() {
@@ -260,25 +311,29 @@ export class ProfilePage implements OnInit {
     const loading = await this.loadingCtrl.create({ message: 'Enregistrement…' });
     await loading.present();
     const v = this.form.getRawValue();
-    this.api
-      .updateMember(this.targetId, {
-        firstName: v.firstName,
-        lastName: v.lastName,
-        phone: v.phone,
-        birthDate: v.birthDate,
-        gender: (v.gender as 'M' | 'F' | 'O') || undefined,
-        paypalEmail: v.paypalEmail,
-        fatherId: v.fatherId,
-        motherId: v.motherId,
-      })
-      .subscribe({
-        next: async () => {
-          await loading.dismiss();
-          const t = await this.toastCtrl.create({ message: 'Profil mis à jour', color: 'success', duration: 1500 });
-          await t.present();
-          this.router.navigateByUrl('/members');
-        },
-        error: () => loading.dismiss(),
-      });
+    const payload: Record<string, unknown> = {
+      firstName: v.firstName,
+      lastName: v.lastName,
+      phone: v.phone,
+      birthDate: v.birthDate,
+      gender: (v.gender as 'M' | 'F' | 'O') || undefined,
+      paypalEmail: v.paypalEmail,
+      fatherId: v.fatherId,
+      motherId: v.motherId,
+    };
+    // Only include deceasedAt when the caller has the right to set it,
+    // so the backend doesn't reject normal self-edits.
+    if (this.canMarkDeceased()) {
+      payload['deceasedAt'] = v.deceasedAt;
+    }
+    this.api.updateMember(this.targetId, payload).subscribe({
+      next: async () => {
+        await loading.dismiss();
+        const t = await this.toastCtrl.create({ message: 'Profil mis à jour', color: 'success', duration: 1500 });
+        await t.present();
+        this.router.navigateByUrl('/members');
+      },
+      error: () => loading.dismiss(),
+    });
   }
 }

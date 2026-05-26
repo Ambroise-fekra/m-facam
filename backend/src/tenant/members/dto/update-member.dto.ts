@@ -40,4 +40,9 @@ export class UpdateMemberDto {
   @IsOptional()
   @IsString()
   motherId?: string; // uuid or '' to detach
+
+  /** Date du décès (YYYY-MM-DD) ou '' pour effacer. Réservé à l'admin/chef. */
+  @IsOptional()
+  @IsString()
+  deceasedAt?: string;
 }

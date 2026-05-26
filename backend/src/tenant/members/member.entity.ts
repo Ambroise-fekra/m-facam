@@ -59,6 +59,10 @@ export class Member {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
+  /** Date of death. When set, the member is treated as deceased (isActive=false). */
+  @Column({ name: 'deceased_at', type: 'date', nullable: true })
+  deceasedAt: Date | null;
+
   /** Set to true automatically when the member has an overdue loan; admin can clear. */
   @Column({ name: 'is_blocked', type: 'boolean', default: false })
   isBlocked: boolean;

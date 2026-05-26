@@ -101,6 +101,7 @@ export class MembersService {
       photo: m.photo,
       isActive: m.isActive,
       isBlocked: m.isBlocked,
+      deceasedAt: m.deceasedAt ? String(m.deceasedAt).substring(0, 10) : null,
       // True if this member has any way to log in (already has a password OR
       // an outstanding invite link). Used by the UI to offer "Activer la
       // connexion" only when needed.
@@ -176,6 +177,9 @@ export class MembersService {
     const repo = await this.repo(fam.identifier);
     const m = await repo.findOne({ where: { id } });
     if (!m) throw new NotFoundException('Member not found');
+    if (m.deceasedAt) {
+      throw new BadRequestException('Ce membre est marqué comme décédé — la connexion ne peut pas être activée.');
+    }
     if (!m.email) {
       throw new BadRequestException(
         'Ajoutez d\'abord un email à ce membre (via « Modifier le profil ») avant d\'activer la connexion.',
@@ -261,10 +265,17 @@ export class MembersService {
     return { id: m.id, isBlocked: m.isBlocked };
   }
 
-  /** Updates a member's profile. Allowed for the member themselves or an admin. */
+  /** Updates a member's profile. Self / admin / chef de famille. The `deceasedAt`
+   * field requires admin or chef explicitly (a member can't mark themselves dead).
+   */
   async update(fam: FamilyContext, id: string, dto: UpdateMemberDto) {
-    if (id !== fam.memberId && !fam.isAdmin) {
-      throw new ForbiddenException('Vous ne pouvez modifier que votre propre profil');
+    const isSelf = id === fam.memberId;
+    const isAdminOrChief = await this.isAdminOrChief(fam);
+    if (!isSelf && !isAdminOrChief) {
+      throw new ForbiddenException('Réservé au membre lui-même, à l\'administrateur ou au chef de famille');
+    }
+    if (dto.deceasedAt !== undefined && !isAdminOrChief) {
+      throw new ForbiddenException('Seul l\'administrateur ou le chef de famille peut enregistrer un décès');
     }
     const repo = await this.repo(fam.identifier);
     const m = await repo.findOne({ where: { id } });
@@ -284,6 +295,18 @@ export class MembersService {
       if (dto.motherId === id) throw new BadRequestException('Un membre ne peut pas être son propre parent');
       m.motherId = dto.motherId || null;
     }
+    if (dto.deceasedAt !== undefined) {
+      if (dto.deceasedAt) {
+        m.deceasedAt = new Date(dto.deceasedAt);
+        // A deceased member is no longer counted in quorum, can't be a parent
+        // selected as responsible/borrower, etc.
+        m.isActive = false;
+      } else {
+        m.deceasedAt = null;
+        // Clearing the death date does NOT automatically re-activate — admin
+        // may choose to re-activate via "Activer la connexion".
+      }
+    }
     await repo.save(m);
     const all = await repo.find();
     return this.enrich(m, all);
@@ -302,7 +325,7 @@ export class MembersService {
     const cur = now.getMonth() + 1;
     const nxt = cur === 12 ? 1 : cur + 1;
     return members
-      .filter((m) => !!m.birthDate)
+      .filter((m) => !!m.birthDate && !m.deceasedAt)
       .map((m) => {
         const [by, bm, bd] = String(m.birthDate).substring(0, 10).split('-').map(Number);
         return { m, by, bm, bd };
