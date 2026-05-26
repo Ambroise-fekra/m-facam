@@ -50,8 +50,10 @@ import { FamilyEvent } from '../../../core/models/api.models';
 
         <ng-container *ngIf="e.status === 'proposed'; else fundingTpl">
           <div class="vote-line">
-            🗳️ Vote : {{ e.tally?.yes || 0 }} oui / {{ e.tally?.no || 0 }} non
-            · quorum {{ e.tally?.voters || 0 }}/{{ e.tally?.quorumNeeded || 0 }}
+            🗳️ {{ e.tally?.yes || 0 }} oui / {{ e.tally?.no || 0 }} non
+            <span class="rule">· Quorum {{ e.tally?.voters || 0 }}/{{ e.tally?.quorumNeeded || 0 }}
+              <em>(2/3 sur {{ e.tally?.totalMembers || 0 }})</em>
+            </span>
             <span *ngIf="e.myVote" class="myvote">— votre vote : {{ e.myVote === 'yes' ? 'OUI' : 'NON' }}</span>
             <span *ngIf="!e.myVote" class="tovote">— à voter</span>
           </div>
@@ -79,7 +81,9 @@ import { FamilyEvent } from '../../../core/models/api.models';
       .ev-meta { color: #94a3b8; font-size: .85rem; margin: 6px 0 10px; }
       .ev-amounts { display: flex; justify-content: space-between; margin-top: 8px; color: #cbd5e1; font-size: .9rem; }
       .ev-amounts .mine { color: var(--facam-accent); font-weight: 700; }
-      .vote-line { color: #cbd5e1; font-size: .9rem; }
+      .vote-line { color: #cbd5e1; font-size: .9rem; line-height: 1.5; }
+      .vote-line .rule { color: #94a3b8; }
+      .vote-line .rule em { font-style: normal; opacity: .75; }
       .vote-line .myvote { color: #34d399; font-weight: 700; }
       .vote-line .tovote { color: #fbbf24; font-weight: 700; }
       .empty { text-align: center; padding: 24px; }

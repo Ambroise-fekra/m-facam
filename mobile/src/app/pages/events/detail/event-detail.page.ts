@@ -68,11 +68,23 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
       <!-- VOTING (proposed) -->
       <div class="facam-card" *ngIf="event.status === 'proposed'">
         <h3 class="h-title">🗳️ Vote de la famille</h3>
-        <p class="t-muted small">Vote anonyme · modifiable jusqu'à l'échéance · activation à la majorité des 2/3 (quorum 2/3).</p>
+        <p class="t-muted small">Vote anonyme · modifiable jusqu'à l'échéance.</p>
         <div class="tally">
-          <div class="t-yes">✅ {{ event.tally?.yes || 0 }} oui</div>
-          <div class="t-no">❌ {{ event.tally?.no || 0 }} non</div>
-          <div class="t-q">Quorum {{ event.tally?.voters || 0 }}/{{ event.tally?.quorumNeeded || 0 }}</div>
+          <div class="t-yes">✅ {{ event.tally?.yes || 0 }} OUI</div>
+          <div class="t-no">❌ {{ event.tally?.no || 0 }} NON</div>
+        </div>
+        <div class="rule-line" *ngIf="event.tally">
+          <span>📊 <strong>Quorum</strong> : {{ event.tally.voters }}/{{ event.tally.quorumNeeded }}
+            <em>(2/3 des {{ event.tally.totalMembers }} membres actifs)</em></span>
+          <span class="check">{{ event.tally.quorumReached ? '✅' : '❌' }}</span>
+        </div>
+        <div class="rule-line" *ngIf="event.tally">
+          <span>🎯 <strong>Majorité</strong> : {{ event.tally.yes }}/{{ event.tally.majorityNeeded }} OUI
+            <em>(2/3 des votants exprimés)</em></span>
+          <span class="check">{{ event.tally.yes >= event.tally.majorityNeeded && event.tally.voters > 0 ? '✅' : '❌' }}</span>
+        </div>
+        <div class="rule-line state" *ngIf="event.tally">
+          <span>{{ event.tally.passed ? '✅ Proposition adoptée' : (event.tally.voters > 0 ? '⏳ En attente' : '⏳ Aucun vote') }}</span>
         </div>
         <div class="vote-btns">
           <ion-button expand="block" [fill]="myVote === 'yes' ? 'solid' : 'outline'" color="success" (click)="castVote('yes')">
@@ -175,7 +187,12 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
       .wa { margin: 0 0 14px; }
       .small { font-size: .82rem; }
       .tally { display: flex; justify-content: space-around; margin: 12px 0; font-weight: 700; }
-      .t-yes { color: #34d399; } .t-no { color: #f87171; } .t-q { color: #cbd5e1; }
+      .t-yes { color: #34d399; } .t-no { color: #f87171; }
+      .rule-line { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; color: #cbd5e1; font-size: .88rem; padding: 5px 0; line-height: 1.5; }
+      .rule-line strong { color: #fff; }
+      .rule-line em { font-style: normal; color: #94a3b8; }
+      .rule-line .check { font-size: 1.05rem; flex-shrink: 0; }
+      .rule-line.state { justify-content: center; margin-top: 6px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,.12); font-weight: 700; color: #fff; }
       .vote-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
       .admin-box { margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,.15); }
       .paid { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.3); }

@@ -47,6 +47,10 @@ export class Family {
   @Column({ name: 'photo', type: 'text', nullable: true })
   photo: string | null;
 
+  /** Id of the active member designated as "chef de famille" (cross-DB, validated by the app). */
+  @Column({ name: 'chief_member_id', type: 'uuid', nullable: true })
+  chiefMemberId: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

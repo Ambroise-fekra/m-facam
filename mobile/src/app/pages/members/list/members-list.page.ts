@@ -10,6 +10,7 @@ import {
   IonTitle,
   IonToolbar,
   ActionSheetController,
+  AlertController,
   ToastController,
 } from '@ionic/angular/standalone';
 import { Browser } from '@capacitor/browser';
@@ -55,6 +56,16 @@ import { Member } from '../../../core/models/api.models';
           </div>
         </div>
         <p *ngIf="auth.isAdmin" class="logo-hint" (click)="changeLogo()">📷 {{ info.photo ? 'Changer' : 'Ajouter' }} le logo de la famille</p>
+
+        <div class="chief-row">
+          <span class="chief-label">⭐ Chef de famille :</span>
+          <strong *ngIf="info.chief">{{ info.chief.firstName }} {{ info.chief.lastName }}</strong>
+          <span *ngIf="!info.chief" class="t-muted">non désigné</span>
+          <ion-button *ngIf="auth.isAdmin" size="small" fill="clear" (click)="pickChief()">
+            {{ info.chief ? 'Changer' : 'Désigner' }}
+          </ion-button>
+        </div>
+
         <ion-button *ngIf="info.whatsappUrl" expand="block" class="wa" (click)="openWhatsapp()">
           💬 Rejoindre le groupe WhatsApp
         </ion-button>
@@ -104,6 +115,10 @@ import { Member } from '../../../core/models/api.models';
       .fam-name { color: #fff; font-weight: 800; font-size: 1.2rem; }
       .ident { color: #cbd5e1; font-family: 'Space Grotesk', monospace; cursor: pointer; font-size: .9rem; margin-top: 2px; }
       .logo-hint { color: #a5b4fc; font-size: .82rem; cursor: pointer; margin: 10px 0; }
+      .chief-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: #cbd5e1; margin: 6px 0 4px; font-size: .92rem; }
+      .chief-row .chief-label { color: #94a3b8; }
+      .chief-row strong { color: #fff; }
+      .chief-row ion-button { --color: #a5b4fc; margin-left: auto; }
       .wa { --background: #25D366; --background-activated: #1da851; --color: #062e16; font-weight: 700; }
       .member { display: flex; gap: 14px; align-items: flex-start; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 14px; margin-bottom: 10px; }
       .avatar { position: relative; width: 48px; height: 48px; border-radius: 50%; background: var(--facam-gradient); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
@@ -127,6 +142,7 @@ export class MembersListPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toastCtrl = inject(ToastController);
   private readonly actionSheetCtrl = inject(ActionSheetController);
+  private readonly alertCtrl = inject(AlertController);
   private readonly whatsapp = inject(WhatsappService);
   private readonly images = inject(ImageService);
   readonly auth = inject(AuthService);
@@ -199,6 +215,43 @@ export class MembersListPage implements OnInit {
   notify(m: Member) {
     const fam = this.info?.name ?? 'la famille';
     this.whatsapp.share(`Bonjour ${m.firstName}, message de ${fam} (Family Cash Management).`, m.phone);
+  }
+
+  async pickChief() {
+    const currentId = this.info?.chief?.id ?? '';
+    const inputs = [
+      { type: 'radio' as const, label: '— Aucun chef de famille —', value: '', checked: !currentId },
+      ...this.members
+        .filter((m) => m.role !== 'admin' ? true : true) // include admin too — admin can be chief
+        .map((m) => ({
+          type: 'radio' as const,
+          label: `${m.firstName} ${m.lastName}`,
+          value: m.id,
+          checked: m.id === currentId,
+        })),
+    ];
+    const alert = await this.alertCtrl.create({
+      header: 'Chef de famille',
+      message: 'Choisissez un membre actif. Le chef de famille apparaît sur le tableau de bord.',
+      inputs,
+      buttons: [
+        { text: 'Annuler', role: 'cancel' },
+        { text: 'Enregistrer', role: 'confirm' },
+      ],
+    });
+    await alert.present();
+    const { role, data } = await alert.onDidDismiss<{ values?: string }>();
+    if (role !== 'confirm') return;
+    const chiefMemberId = data?.values || null;
+    this.api.updateFamily({ chiefMemberId }).subscribe(async () => {
+      const t = await this.toastCtrl.create({
+        message: chiefMemberId ? 'Chef de famille désigné' : 'Chef de famille retiré',
+        color: 'success',
+        duration: 1700,
+      });
+      await t.present();
+      this.reload();
+    });
   }
 
   async copyId() {

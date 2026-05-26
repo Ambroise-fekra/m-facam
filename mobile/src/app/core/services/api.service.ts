@@ -27,12 +27,21 @@ interface CreateFamilyPayload {
   whatsappUrl?: string;
 }
 
+export interface MemberMini {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+}
+
 export interface FamilyInfo {
   name: string;
   identifier: string;
   whatsappUrl: string | null;
   paypalEmail: string | null;
   photo: string | null;
+  admin: MemberMini | null;
+  chief: MemberMini | null;
 }
 
 interface ContributionPayload {
@@ -235,7 +244,7 @@ export class ApiService {
     );
   }
 
-  updateFamily(p: { paypalEmail?: string; whatsappUrl?: string; photo?: string }) {
+  updateFamily(p: { paypalEmail?: string; whatsappUrl?: string; photo?: string; chiefMemberId?: string | null }) {
     return this.http.patch<void>(`${this.base}/admin/family`, p);
   }
 }

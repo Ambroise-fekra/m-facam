@@ -20,7 +20,7 @@ import {
   notificationsOutline,
   logOutOutline,
 } from 'ionicons/icons';
-import { ApiService } from '../../core/services/api.service';
+import { ApiService, FamilyInfo } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.models';
 
@@ -43,7 +43,26 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
 
     <ion-content class="facam-bg ion-padding">
       <p class="greet">Bonjour {{ auth.snapshot?.member?.firstName }} 👋</p>
-      <p class="family">Famille {{ auth.snapshot?.family?.name }}</p>
+      <p class="family">Famille {{ info?.name ?? auth.snapshot?.family?.name }}</p>
+
+      <div class="fam-card" *ngIf="info">
+        <div class="fam-row" *ngIf="info.admin">
+          <span class="fam-role">👑 Admin</span>
+          <span class="fam-name">{{ info.admin.firstName }} {{ info.admin.lastName }}</span>
+          <a class="fam-phone" *ngIf="info.admin.phone" [href]="'tel:' + info.admin.phone">📞 {{ info.admin.phone }}</a>
+          <span class="fam-phone muted" *ngIf="!info.admin.phone">—</span>
+        </div>
+        <div class="fam-row" *ngIf="info.chief">
+          <span class="fam-role">⭐ Chef de famille</span>
+          <span class="fam-name">{{ info.chief.firstName }} {{ info.chief.lastName }}</span>
+          <a class="fam-phone" *ngIf="info.chief.phone" [href]="'tel:' + info.chief.phone">📞 {{ info.chief.phone }}</a>
+          <span class="fam-phone muted" *ngIf="!info.chief.phone">—</span>
+        </div>
+        <div class="fam-row no-chief" *ngIf="!info.chief && auth.isAdmin">
+          ⭐ <a (click)="router.navigateByUrl('/members')">Désigner un chef de famille →</a>
+        </div>
+      </div>
+
       <p class="byline">Family Cash Management — By ALICSIA (Ambroise Fouti LOEMBA)</p>
 
       <!-- Caisse familiale en premier, en grand -->
@@ -115,7 +134,14 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
       .logout-top { --border-radius: 10px; }
       .hdr-logo { width: 30px; height: 30px; object-fit: contain; margin-left: 12px; background: #fff; border-radius: 7px; padding: 3px; }
       .greet { color: #cbd5e1; font-size: 1.05rem; margin: 4px 0 0; }
-      .family { color: #fff; font-size: 1.5rem; font-weight: 800; margin: 0 0 4px; }
+      .family { color: #fff; font-size: 1.5rem; font-weight: 800; margin: 0 0 6px; }
+      .fam-card { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 8px 12px; margin-bottom: 10px; }
+      .fam-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 4px 0; color: #cbd5e1; font-size: .88rem; }
+      .fam-role { color: #94a3b8; min-width: 130px; font-weight: 600; }
+      .fam-name { color: #fff; font-weight: 700; }
+      .fam-phone { color: var(--facam-accent); text-decoration: none; font-weight: 600; }
+      .fam-phone.muted { color: #64748b; font-weight: 400; }
+      .no-chief a { color: var(--facam-accent); cursor: pointer; text-decoration: underline; }
       .byline { color: #94a3b8; font-size: .78rem; margin: 0 0 16px; }
       .cash-card { background: var(--facam-gradient-soft); border: 1px solid rgba(99,102,241,.3); border-radius: 22px; padding: 22px; }
       .cash-card .label { display: block; color: #cbd5e1; font-size: .85rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
@@ -150,6 +176,7 @@ export class DashboardPage implements OnInit {
 
   balance: MyBalance | null = null;
   cash: CashSnapshot | null = null;
+  info: FamilyInfo | null = null;
   activeEvents: FamilyEvent[] = [];
   proposedCount = 0;
 
@@ -158,14 +185,18 @@ export class DashboardPage implements OnInit {
   }
 
   ngOnInit() {
-    forkJoin({ balance: this.api.myBalance(), cash: this.api.cash(), events: this.api.events() }).subscribe(
-      ({ balance, cash, events }) => {
-        this.balance = balance;
-        this.cash = cash;
-        this.activeEvents = events.filter((e) => e.status === 'active').slice(0, 5);
-        this.proposedCount = events.filter((e) => e.status === 'proposed').length;
-      },
-    );
+    forkJoin({
+      balance: this.api.myBalance(),
+      cash: this.api.cash(),
+      events: this.api.events(),
+      info: this.api.familyInfo(),
+    }).subscribe(({ balance, cash, events, info }) => {
+      this.balance = balance;
+      this.cash = cash;
+      this.info = info;
+      this.activeEvents = events.filter((e) => e.status === 'active').slice(0, 5);
+      this.proposedCount = events.filter((e) => e.status === 'proposed').length;
+    });
   }
 
   ratio(e: FamilyEvent): number {

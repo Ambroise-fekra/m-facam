@@ -17,16 +17,28 @@ export class MembersService {
     @InjectRepository(Family, 'master') private readonly familyRepo: Repository<Family>,
   ) {}
 
-  /** Non-sensitive family info any member can see (WhatsApp link, identifier...). */
+  /**
+   * Non-sensitive family info any member can see (WhatsApp link, identifier,
+   * plus the admin and chef-de-famille names+phones for the dashboard header).
+   */
   async familyInfo(fam: FamilyContext) {
     const family = await this.familyRepo.findOne({ where: { id: fam.familyId } });
     if (!family) throw new NotFoundException('Family not found');
+    const repo = await this.repo(fam.identifier);
+    const adminM = await repo.findOne({ where: { role: 'admin' } });
+    const chiefM = family.chiefMemberId
+      ? await repo.findOne({ where: { id: family.chiefMemberId } })
+      : null;
+    const mini = (m: Member | null) =>
+      m ? { id: m.id, firstName: m.firstName, lastName: m.lastName, phone: m.phone } : null;
     return {
       name: family.name,
       identifier: family.identifier,
       whatsappUrl: family.whatsappUrl,
       paypalEmail: family.paypalEmail,
       photo: family.photo,
+      admin: mini(adminM),
+      chief: mini(chiefM),
     };
   }
 
