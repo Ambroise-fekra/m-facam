@@ -154,7 +154,7 @@ export class MembersListPage implements OnInit {
   }
 
   async changePhoto(m: Member) {
-    const dataUrl = await this.images.pick();
+    const dataUrl = await this.images.pickCropped();
     if (!dataUrl) return;
     this.api.setMemberPhoto(m.id, dataUrl).subscribe(async () => {
       const t = await this.toastCtrl.create({ message: 'Photo mise à jour', color: 'success', duration: 1500 });
@@ -164,7 +164,7 @@ export class MembersListPage implements OnInit {
   }
 
   async changeLogo() {
-    const dataUrl = await this.images.pick();
+    const dataUrl = await this.images.pickCropped();
     if (!dataUrl) return;
     this.api.updateFamily({ photo: dataUrl }).subscribe(async () => {
       const t = await this.toastCtrl.create({ message: 'Logo mis à jour', color: 'success', duration: 1500 });

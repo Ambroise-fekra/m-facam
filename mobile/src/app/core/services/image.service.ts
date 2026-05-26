@@ -1,12 +1,42 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { ModalController } from '@ionic/angular/standalone';
 
 /**
- * Lets the user pick an image and returns a small, resized JPEG data URL —
- * small enough to store inline in the DB (no file server needed).
+ * Lets the user pick an image and returns a resized JPEG data URL — small
+ * enough to store inline in the DB (no file server needed).
+ *
+ *  - `pick()`         : just resize (kept for backward compatibility).
+ *  - `pickCropped()`  : open a modal to let the user pan/zoom and **crop** a
+ *                       square area (round preview) — what you want for the
+ *                       circular avatars and the family logo.
  */
 @Injectable({ providedIn: 'root' })
 export class ImageService {
-  /** Opens the file picker and resolves a resized data URL (or null if cancelled). */
+  private readonly modalCtrl = inject(ModalController);
+
+  /** Pick + crop (recommended for round avatars). */
+  async pickCropped(maxSize = 256, quality = 85): Promise<string | null> {
+    const file = await this.pickFile();
+    if (!file) return null;
+    let base64: string;
+    try {
+      base64 = await this.fileToDataUrl(file);
+    } catch {
+      return null;
+    }
+    // Lazy-import the modal page to keep it out of the initial bundle.
+    const { PhotoCropPage } = await import('../../pages/photo-crop/photo-crop.page');
+    const modal = await this.modalCtrl.create({
+      component: PhotoCropPage,
+      componentProps: { imageBase64: base64, resizeToWidth: maxSize, quality },
+    });
+    await modal.present();
+    const { data, role } = await modal.onWillDismiss<string>();
+    if (role !== 'confirm' || !data) return null;
+    return data;
+  }
+
+  /** Original behaviour: just resize the picked image (no crop). */
   pick(maxSize = 256, quality = 0.8): Promise<string | null> {
     return new Promise((resolve) => {
       const input = document.createElement('input');
@@ -22,6 +52,25 @@ export class ImageService {
         }
       };
       input.click();
+    });
+  }
+
+  private pickFile(): Promise<File | null> {
+    return new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = () => resolve(input.files?.[0] ?? null);
+      input.click();
+    });
+  }
+
+  private fileToDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(file);
     });
   }
 
