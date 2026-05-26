@@ -109,7 +109,12 @@ export class ContributionsService {
    * Caisse globale — montant total collecté toutes contributions confondues.
    * Visible par tous mais sans détail par membre.
    */
-  async globalCash(fam: FamilyContext): Promise<{ totalCash: string; totalAllocated: string }> {
+  async globalCash(fam: FamilyContext): Promise<{
+    totalCash: string;
+    totalAllocated: string;
+    loansOutstanding: string;
+    loansActiveCount: number;
+  }> {
     const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
     const contributed = await ds
       .getRepository(Contribution)
@@ -122,27 +127,49 @@ export class ContributionsService {
       .createQueryBuilder('a')
       .select('COALESCE(SUM(a.amount), 0)', 'total')
       .getRawOne();
-    // Loan disbursed = leaves caisse; repayments come back in. Both are
-    // separate from regular contributions / allocations.
-    const loansOut = await ds
+    // All disbursed loans (whether still active or already closed) and all
+    // repayments — the difference is what's effectively "out" of the caisse.
+    const loansOutAll = await ds
       .getRepository(Event)
       .createQueryBuilder('e')
       .select('COALESCE(SUM(e.target_amount), 0)', 'total')
       .where("e.type = 'loan' AND e.payout_status = 'done'")
       .getRawOne();
-    const repaid = await ds
+    const repaidAll = await ds
       .getRepository(LoanRepayment)
       .createQueryBuilder('r')
       .select('COALESCE(SUM(r.amount), 0)', 'total')
       .getRawOne();
+    // "Outstanding to be repaid" considers ONLY loans still active (closed
+    // loans are either fully repaid or written off).
+    const loansOutActive = await ds
+      .getRepository(Event)
+      .createQueryBuilder('e')
+      .select('COALESCE(SUM(e.target_amount), 0)', 'total')
+      .addSelect('COUNT(e.id)', 'cnt')
+      .where("e.type = 'loan' AND e.payout_status = 'done' AND e.status <> 'closed'")
+      .getRawOne();
+    const repaidActive = await ds
+      .getRepository(LoanRepayment)
+      .createQueryBuilder('r')
+      .innerJoin(Event, 'e', 'e.id = r.event_id')
+      .select('COALESCE(SUM(r.amount), 0)', 'total')
+      .where("e.type = 'loan' AND e.payout_status = 'done' AND e.status <> 'closed'")
+      .getRawOne();
     const totalCash =
       Number(contributed?.total ?? 0) -
       Number(allocated?.total ?? 0) -
-      Number(loansOut?.total ?? 0) +
-      Number(repaid?.total ?? 0);
+      Number(loansOutAll?.total ?? 0) +
+      Number(repaidAll?.total ?? 0);
+    const loansOutstanding = Math.max(
+      0,
+      Number(loansOutActive?.total ?? 0) - Number(repaidActive?.total ?? 0),
+    );
     return {
       totalCash: totalCash.toFixed(2),
       totalAllocated: Number(allocated?.total ?? 0).toFixed(2),
+      loansOutstanding: loansOutstanding.toFixed(2),
+      loansActiveCount: Number(loansOutActive?.cnt ?? 0),
     };
   }
 }

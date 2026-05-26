@@ -29,6 +29,8 @@ export interface MyBalance {
 export interface CashSnapshot {
   totalCash: string;
   totalAllocated: string;
+  loansOutstanding?: string;
+  loansActiveCount?: number;
 }
 
 export type EventType = 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan';
