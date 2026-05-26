@@ -110,13 +110,13 @@ import { Member } from '../../core/models/api.models';
           <h3 class="h-title sec">🕯️ Décès</h3>
           <div class="deceased-row">
             <ion-checkbox
-              [checked]="isDeceasedChecked()"
+              [checked]="!!form.value.isDeceased"
               (ionChange)="onDeceasedToggle($event)"
             ></ion-checkbox>
             <span>Membre décédé(e)</span>
           </div>
-          <ng-container *ngIf="isDeceasedChecked()">
-            <label class="fld-label">Date du décès</label>
+          <ng-container *ngIf="form.value.isDeceased">
+            <label class="fld-label">Date du décès <span class="t-muted">(facultatif si inconnue, ex. ancêtre)</span></label>
             <ion-input class="fld" type="date" formControlName="deceasedAt"></ion-input>
             <p class="t-muted small">Le membre sera automatiquement marqué inactif (exclu du quorum, non sélectionnable comme responsable).</p>
           </ng-container>
@@ -210,6 +210,7 @@ export class ProfilePage implements OnInit {
     paypalEmail: [''],
     fatherId: [''],
     motherId: [''],
+    isDeceased: [false],
     deceasedAt: [''],
     isActive: [false],
   });
@@ -295,6 +296,7 @@ export class ProfilePage implements OnInit {
           paypalEmail: m.paypalEmail ?? '',
           fatherId: m.fatherId ?? '',
           motherId: m.motherId ?? '',
+          isDeceased: !!m.isDeceased,
           deceasedAt: m.deceasedAt ?? '',
           isActive: !!m.isActive,
         });
@@ -308,10 +310,6 @@ export class ProfilePage implements OnInit {
     return this.auth.isAdmin || (!!meId && meId === this.familyInfo?.chief?.id);
   }
 
-  isDeceasedChecked(): boolean {
-    return !!this.form.value.deceasedAt;
-  }
-
   targetHasPassword(): boolean {
     return this.memberHasPassword;
   }
@@ -322,16 +320,13 @@ export class ProfilePage implements OnInit {
   }
 
   onDeceasedToggle(e: Event) {
-    const checked = (e as CustomEvent).detail?.checked;
-    if (checked) {
-      // default to today's date if no date already set
-      if (!this.form.value.deceasedAt) {
-        const today = new Date().toISOString().substring(0, 10);
-        this.form.controls.deceasedAt.setValue(today);
-      }
-    } else {
+    const checked = !!(e as CustomEvent).detail?.checked;
+    this.form.controls.isDeceased.setValue(checked);
+    if (!checked) {
+      // Décocher → on vide aussi la date éventuelle.
       this.form.controls.deceasedAt.setValue('');
     }
+    // Si on coche, on NE pré-remplit PAS la date (peut être inconnue, ex. ancêtre).
   }
 
   async submit() {
@@ -349,9 +344,10 @@ export class ProfilePage implements OnInit {
       fatherId: v.fatherId,
       motherId: v.motherId,
     };
-    // Only include deceasedAt + isActive when the caller has the right to
-    // set them, so the backend doesn't reject normal self-edits.
+    // Only include isDeceased + deceasedAt + isActive when the caller has the
+    // right to set them, so the backend doesn't reject normal self-edits.
     if (this.canMarkDeceased()) {
+      payload['isDeceased'] = v.isDeceased;
       payload['deceasedAt'] = v.deceasedAt;
       payload['isActive'] = v.isActive;
     }

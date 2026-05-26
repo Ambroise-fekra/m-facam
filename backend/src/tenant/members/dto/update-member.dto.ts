@@ -41,7 +41,12 @@ export class UpdateMemberDto {
   @IsString()
   motherId?: string; // uuid or '' to detach
 
-  /** Date du décès (YYYY-MM-DD) ou '' pour effacer. Réservé à l'admin/chef. */
+  /** Membre décédé (case à cocher du profil). Réservé à l'admin/chef. */
+  @IsOptional()
+  @IsBoolean()
+  isDeceased?: boolean;
+
+  /** Date du décès (YYYY-MM-DD) ou '' pour effacer. Facultatif (ancêtres). */
   @IsOptional()
   @IsString()
   deceasedAt?: string;

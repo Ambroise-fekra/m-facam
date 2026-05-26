@@ -106,7 +106,9 @@ export interface Member {
   /** False = "inactive" member: in the family tree but not counted in quorum, can't log in. */
   isActive?: boolean;
   isBlocked?: boolean;
-  /** Date of death (YYYY-MM-DD) if the member is deceased — else null. */
+  /** True when the member is deceased (date may be unknown). */
+  isDeceased?: boolean;
+  /** Optional date of death (YYYY-MM-DD) — may be null when unknown. */
   deceasedAt?: string | null;
   /** True if the member already has a password or a pending invite link. */
   canLogin?: boolean;

@@ -60,7 +60,7 @@ export class ExternalService {
     }
     const me = await ds.getRepository(Member).findOne({ where: { id: fam.memberId } });
     if (!me || !me.isActive) throw new ForbiddenException('Membre inactif');
-    if (me.deceasedAt) throw new ForbiddenException('Membre décédé');
+    if (me.isDeceased) throw new ForbiddenException('Membre décédé');
     if (me.isBlocked) throw new ForbiddenException('Compte bloqué');
 
     const repo = ds.getRepository(ExternalContribution);

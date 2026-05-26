@@ -95,7 +95,9 @@ interface MemberUpdatePayload {
   paypalEmail?: string;
   fatherId?: string;
   motherId?: string;
-  /** YYYY-MM-DD or '' to clear. Admin/chef only on backend. */
+  /** True if the member is deceased. Admin/chef only on backend. */
+  isDeceased?: boolean;
+  /** Optional YYYY-MM-DD ; '' clears. */
   deceasedAt?: string;
   /** Admin/chef only. */
   isActive?: boolean;

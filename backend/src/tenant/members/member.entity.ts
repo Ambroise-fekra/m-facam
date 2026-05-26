@@ -59,7 +59,11 @@ export class Member {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
-  /** Date of death. When set, the member is treated as deceased (isActive=false). */
+  /** True when the member is deceased. Sets isActive=false. */
+  @Column({ name: 'is_deceased', type: 'boolean', default: false })
+  isDeceased: boolean;
+
+  /** Optional date of death — may be unknown (NULL) for ancestors. */
   @Column({ name: 'deceased_at', type: 'date', nullable: true })
   deceasedAt: Date | null;
 

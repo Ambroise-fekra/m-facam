@@ -56,7 +56,7 @@ export class EventsService {
     // Block: no one whose account is blocked / deceased / inactive can post an event.
     const me = await memberRepo.findOne({ where: { id: fam.memberId } });
     if (!me || !me.isActive) throw new ForbiddenException('Membre inactif');
-    if (me.deceasedAt) throw new ForbiddenException('Membre décédé');
+    if (me.isDeceased) throw new ForbiddenException('Membre décédé');
     if (me.isBlocked) {
       throw new ForbiddenException('Votre compte est bloqué (prêt impayé). Contactez l\'administrateur.');
     }
@@ -332,7 +332,7 @@ export class EventsService {
     }
     // Blocked / deceased / inactive members can't vote.
     const me = await ds.getRepository(Member).findOne({ where: { id: fam.memberId } });
-    if (me?.deceasedAt) throw new ForbiddenException('Membre décédé — vote impossible');
+    if (me?.isDeceased) throw new ForbiddenException('Membre décédé — vote impossible');
     if (me && !me.isActive) throw new ForbiddenException('Membre inactif — vote impossible');
     if (me?.isBlocked) {
       throw new ForbiddenException('Votre compte est bloqué (prêt impayé).');
@@ -387,7 +387,7 @@ export class EventsService {
       .getRepository(Member)
       .createQueryBuilder('m')
       .where(
-        'm.is_active = true AND m.deceased_at IS NULL AND m.is_blocked = false AND m.password_hash IS NOT NULL',
+        'm.is_active = true AND m.is_deceased = false AND m.is_blocked = false AND m.password_hash IS NOT NULL',
       )
       .getCount();
     if (event?.type === 'loan' && event.borrowerId) totalMembers = Math.max(0, totalMembers - 1);

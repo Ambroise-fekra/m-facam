@@ -37,7 +37,7 @@ export class MembersService {
     // « Actif » = a un compte (mot de passe défini) + flag isActive ON +
     // ni décédé ni bloqué. C'est la définition utilisée aussi pour le quorum.
     const activeMembersCount = all.filter(
-      (m) => m.isActive && !m.deceasedAt && !m.isBlocked && !!m.passwordHash,
+      (m) => m.isActive && !m.isDeceased && !m.isBlocked && !!m.passwordHash,
     ).length;
     return {
       name: family.name,
@@ -110,6 +110,7 @@ export class MembersService {
       photo: m.photo,
       isActive: m.isActive,
       isBlocked: m.isBlocked,
+      isDeceased: m.isDeceased,
       deceasedAt: m.deceasedAt ? String(m.deceasedAt).substring(0, 10) : null,
       // True if this member has any way to log in (already has a password OR
       // an outstanding invite link). Used by the UI to offer "Activer la
@@ -191,7 +192,7 @@ export class MembersService {
     const repo = await this.repo(fam.identifier);
     const m = await repo.findOne({ where: { id } });
     if (!m) throw new NotFoundException('Member not found');
-    if (m.deceasedAt) {
+    if (m.isDeceased) {
       throw new BadRequestException('Ce membre est marqué comme décédé — la connexion ne peut pas être activée.');
     }
     if (!m.email) {
@@ -241,7 +242,7 @@ export class MembersService {
     const repo = await this.repo(fam.identifier);
     const me = await repo.findOne({ where: { id: fam.memberId } });
     if (!me || !me.isActive) throw new ForbiddenException('Membre inactif');
-    if (me.deceasedAt) throw new ForbiddenException('Membre décédé');
+    if (me.isDeceased) throw new ForbiddenException('Membre décédé');
     if (me.isBlocked) throw new ForbiddenException('Votre compte est bloqué');
     if (me.gender !== 'M' && me.gender !== 'F') {
       throw new BadRequestException(
@@ -289,7 +290,7 @@ export class MembersService {
     if (!isSelf && !isAdminOrChief) {
       throw new ForbiddenException('Réservé au membre lui-même, à l\'administrateur ou au chef de famille');
     }
-    if (dto.deceasedAt !== undefined && !isAdminOrChief) {
+    if ((dto.deceasedAt !== undefined || dto.isDeceased !== undefined) && !isAdminOrChief) {
       throw new ForbiddenException('Seul l\'administrateur ou le chef de famille peut enregistrer un décès');
     }
     if (dto.isActive !== undefined && !isAdminOrChief) {
@@ -313,20 +314,32 @@ export class MembersService {
       if (dto.motherId === id) throw new BadRequestException('Un membre ne peut pas être son propre parent');
       m.motherId = dto.motherId || null;
     }
-    if (dto.deceasedAt !== undefined) {
+    // Deceased flag is authoritative; date is optional (may be unknown for an ancestor).
+    if (dto.isDeceased !== undefined) {
+      if (dto.isDeceased) {
+        m.isDeceased = true;
+        m.isActive = false;
+        // Si une date est fournie en même temps, la poser ; sinon laisser inchangée.
+        if (dto.deceasedAt !== undefined) {
+          m.deceasedAt = dto.deceasedAt ? new Date(dto.deceasedAt) : null;
+        }
+      } else {
+        m.isDeceased = false;
+        m.deceasedAt = null;
+        // Clearing does NOT auto-reactivate — admin may explicitly activate via the checkbox.
+      }
+    } else if (dto.deceasedAt !== undefined) {
+      // Caller didn't touch the flag but sends a date → infer the flag.
       if (dto.deceasedAt) {
         m.deceasedAt = new Date(dto.deceasedAt);
-        // A deceased member is no longer counted in quorum, can't be a parent
-        // selected as responsible/borrower, etc.
+        m.isDeceased = true;
         m.isActive = false;
       } else {
         m.deceasedAt = null;
-        // Clearing the death date does NOT automatically re-activate — admin
-        // may choose to re-activate via "Activer la connexion".
       }
     }
     if (dto.isActive !== undefined) {
-      if (dto.isActive && m.deceasedAt) {
+      if (dto.isActive && m.isDeceased) {
         throw new BadRequestException('Un membre décédé ne peut pas être actif');
       }
       m.isActive = dto.isActive;
@@ -349,7 +362,7 @@ export class MembersService {
     const cur = now.getMonth() + 1;
     const nxt = cur === 12 ? 1 : cur + 1;
     return members
-      .filter((m) => !!m.birthDate && !m.deceasedAt)
+      .filter((m) => !!m.birthDate && !m.isDeceased)
       .map((m) => {
         const [by, bm, bd] = String(m.birthDate).substring(0, 10).split('-').map(Number);
         return { m, by, bm, bd };

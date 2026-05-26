@@ -97,8 +97,10 @@ import { Member } from '../../../core/models/api.models';
             <span *ngIf="m.role === 'admin'" class="badge badge-proposed">👑 Admin</span>
             <span *ngIf="m.id === auth.snapshot?.member?.id" class="badge badge-active">Vous</span>
             <span *ngIf="m.isBlocked" class="badge badge-rejected">🚫 Bloqué</span>
-            <span *ngIf="m.deceasedAt" class="badge badge-closed">🕯️ Décédé(e) le {{ m.deceasedAt | date: 'dd/MM/yyyy' }}</span>
-            <span *ngIf="m.isActive === false && !m.deceasedAt" class="badge badge-closed">💤 Inactif</span>
+            <span *ngIf="m.isDeceased" class="badge badge-closed">
+              🕯️ Décédé(e)<span *ngIf="m.deceasedAt"> le {{ m.deceasedAt | date: 'dd/MM/yyyy' }}</span>
+            </span>
+            <span *ngIf="m.isActive === false && !m.isDeceased" class="badge badge-closed">💤 Inactif</span>
           </div>
           <div class="rel blocked-note" *ngIf="m.isBlocked && auth.isAdmin">
             Prêt impayé à l'échéance. <a (click)="unblock(m)">Débloquer →</a>
