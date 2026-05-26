@@ -26,12 +26,18 @@ export class MembersService {
     const family = await this.familyRepo.findOne({ where: { id: fam.familyId } });
     if (!family) throw new NotFoundException('Family not found');
     const repo = await this.repo(fam.identifier);
-    const adminM = await repo.findOne({ where: { role: 'admin' } });
+    const all = await repo.find();
+    const adminM = all.find((m) => m.role === 'admin') ?? null;
     const chiefM = family.chiefMemberId
-      ? await repo.findOne({ where: { id: family.chiefMemberId } })
+      ? all.find((m) => m.id === family.chiefMemberId) ?? null
       : null;
     const mini = (m: Member | null) =>
       m ? { id: m.id, firstName: m.firstName, lastName: m.lastName, phone: m.phone } : null;
+    const membersCount = all.length;
+    // Active = isActive && not deceased && not blocked (fully participating).
+    const activeMembersCount = all.filter(
+      (m) => m.isActive && !m.deceasedAt && !m.isBlocked,
+    ).length;
     return {
       name: family.name,
       identifier: family.identifier,
@@ -40,6 +46,8 @@ export class MembersService {
       photo: family.photo,
       admin: mini(adminM),
       chief: mini(chiefM),
+      membersCount,
+      activeMembersCount,
     };
   }
 

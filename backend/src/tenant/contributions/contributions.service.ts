@@ -114,6 +114,7 @@ export class ContributionsService {
     totalAllocated: string;
     loansOutstanding: string;
     loansActiveCount: number;
+    contributorsCount: number;
   }> {
     const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
     const contributed = await ds
@@ -165,11 +166,18 @@ export class ContributionsService {
       0,
       Number(loansOutActive?.total ?? 0) - Number(repaidActive?.total ?? 0),
     );
+    const contributors = await ds
+      .getRepository(Contribution)
+      .createQueryBuilder('c')
+      .select('COUNT(DISTINCT c.member_id)', 'cnt')
+      .where('c.status = :s', { s: 'completed' })
+      .getRawOne();
     return {
       totalCash: totalCash.toFixed(2),
       totalAllocated: Number(allocated?.total ?? 0).toFixed(2),
       loansOutstanding: loansOutstanding.toFixed(2),
       loansActiveCount: Number(loansOutActive?.cnt ?? 0),
+      contributorsCount: Number(contributors?.cnt ?? 0),
     };
   }
 }

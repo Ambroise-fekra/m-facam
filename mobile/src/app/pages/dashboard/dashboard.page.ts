@@ -43,7 +43,12 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
 
     <ion-content class="facam-bg ion-padding">
       <p class="greet">Bonjour {{ auth.snapshot?.member?.firstName }} 👋</p>
-      <p class="family">Famille {{ info?.name ?? auth.snapshot?.family?.name }}</p>
+      <p class="family">
+        Famille {{ info?.name ?? auth.snapshot?.family?.name }}
+        <span *ngIf="info?.membersCount != null" class="fam-count">
+          — {{ info?.membersCount }} membre(s)<span *ngIf="info?.activeMembersCount != null"> dont <strong>{{ info?.activeMembersCount }} actif(s)</strong></span>
+        </span>
+      </p>
 
       <div class="fam-card" *ngIf="info">
         <div class="fam-row" *ngIf="info.admin">
@@ -69,6 +74,7 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
       <div class="cash-card">
         <span class="label">💰 Caisse familiale (disponible)</span>
         <span class="facam-balance-amount">{{ cash?.totalCash ?? '—' }} €</span>
+        <p class="contributors" *ngIf="cash?.contributorsCount != null">👥 <strong>{{ cash?.contributorsCount }}</strong> cotisant(s)</p>
         <div class="loans-out" *ngIf="hasOutstandingLoans()">
           <span>💸 Reste à rembourser sur prêt(s) en cours</span>
           <strong>{{ cash?.loansOutstanding }} €</strong>
@@ -111,7 +117,10 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
           <div class="ev-title">{{ emojiFor(e.type) }} {{ e.title }}</div>
           <span class="badge badge-active">Actif</span>
         </div>
-        <div class="ev-meta">👤 {{ e.responsibleName }} · 📅 {{ e.eventDate || e.deadline | date: 'dd/MM/yyyy' }}</div>
+        <div class="ev-meta">
+          👤 {{ e.responsibleName }} · 📅 {{ e.eventDate || e.deadline | date: 'dd/MM/yyyy' }}
+          <span *ngIf="e.participantsCount != null && e.participantsCount > 0"> · 👥 {{ e.participantsCount }} {{ participantLabel(e) }}</span>
+        </div>
 
         <div class="bar-label" *ngIf="e.targetAmount">💶 Montant</div>
         <div class="facam-progress" *ngIf="e.targetAmount"><div class="facam-progress-fill" [style.width.%]="ratio(e)"></div></div>
@@ -153,6 +162,10 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
       .byline { color: #94a3b8; font-size: .78rem; margin: 0 0 16px; }
       .cash-card { background: var(--facam-gradient-soft); border: 1px solid rgba(99,102,241,.3); border-radius: 22px; padding: 22px; }
       .cash-card .label { display: block; color: #cbd5e1; font-size: .85rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+      .fam-count { color: #94a3b8; font-weight: 500; font-size: .92rem; }
+      .fam-count strong { color: #fff; }
+      .contributors { color: #cbd5e1; font-size: .85rem; margin: 4px 0 0; }
+      .contributors strong { color: var(--facam-accent); }
       .loans-out { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.30); color: #fde68a; }
       .loans-out strong { color: #fbbf24; font-size: 1.15rem; }
       .loans-note { color: #94a3b8; font-size: .78rem; margin: 4px 2px 0; line-height: 1.4; }
@@ -234,6 +247,12 @@ export class DashboardPage implements OnInit {
 
   hasOutstandingLoans(): boolean {
     return !!this.cash && Number(this.cash.loansOutstanding ?? '0') > 0;
+  }
+
+  participantLabel(e: FamilyEvent): string {
+    if (e.type === 'external') return e.participantsCount === 1 ? 'cotisant' : 'cotisants';
+    if (e.type === 'loan') return 'remboursement(s)';
+    return e.participantsCount === 1 ? 'allouant' : 'allouants';
   }
 
   onLogoError(e: Event) {

@@ -43,6 +43,8 @@ export interface FamilyInfo {
   photo: string | null;
   admin: MemberMini | null;
   chief: MemberMini | null;
+  membersCount?: number;
+  activeMembersCount?: number;
 }
 
 interface ContributionPayload {

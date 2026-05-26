@@ -203,6 +203,36 @@ export class EventsService {
       totalCollected = await this.totalCollectedForEvent(ds, e.id);
       myAllocation = await this.myAllocationForEvent(ds, e.id, fam.memberId);
     }
+    // Count of distinct participants in the event's main flow:
+    //   classical → distinct members who allocated
+    //   external  → distinct members who contributed (earmarked)
+    //   loan      → distinct members who repaid (typically 0 or 1)
+    let participantsCount = 0;
+    if (e.type === 'external') {
+      const row = await ds
+        .getRepository(ExternalContribution)
+        .createQueryBuilder('c')
+        .select('COUNT(DISTINCT c.member_id)', 'cnt')
+        .where('c.event_id = :id', { id: e.id })
+        .getRawOne();
+      participantsCount = Number(row?.cnt ?? 0);
+    } else if (e.type === 'loan') {
+      const row = await ds
+        .getRepository(LoanRepayment)
+        .createQueryBuilder('r')
+        .select('COUNT(DISTINCT r.member_id)', 'cnt')
+        .where('r.event_id = :id', { id: e.id })
+        .getRawOne();
+      participantsCount = Number(row?.cnt ?? 0);
+    } else {
+      const row = await ds
+        .getRepository(Allocation)
+        .createQueryBuilder('a')
+        .select('COUNT(DISTINCT a.member_id)', 'cnt')
+        .where('a.event_id = :id', { id: e.id })
+        .getRawOne();
+      participantsCount = Number(row?.cnt ?? 0);
+    }
     const base = {
       id: e.id,
       type: e.type,
@@ -222,6 +252,7 @@ export class EventsService {
       closedAt: e.closedAt,
       totalCollected,
       myAllocation,
+      participantsCount,
     };
     const withPayout = {
       ...base,

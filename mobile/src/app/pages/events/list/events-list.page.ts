@@ -46,13 +46,19 @@ import { FamilyEvent } from '../../../core/models/api.models';
           <div class="ev-title">{{ emojiFor(e.type) }} {{ e.title }}</div>
           <span class="badge" [ngClass]="badgeClass(e)">{{ statusLabel(e) }}</span>
         </div>
-        <div class="ev-meta">👤 {{ e.responsibleName }} · 📅 {{ e.eventDate || e.deadline | date: 'dd/MM/yyyy' }}</div>
+        <div class="ev-meta">
+          👤 {{ e.responsibleName }} · 📅 {{ e.eventDate || e.deadline | date: 'dd/MM/yyyy' }}
+          <span *ngIf="e.status !== 'proposed' && e.participantsCount != null && e.participantsCount > 0">
+            · 👥 {{ e.participantsCount }} {{ participantLabel(e) }}
+          </span>
+        </div>
 
         <ng-container *ngIf="e.status === 'proposed'; else fundingTpl">
           <div class="vote-line">
             🗳️ {{ e.tally?.yes || 0 }} oui / {{ e.tally?.no || 0 }} non
             <span class="rule">· Quorum {{ e.tally?.voters || 0 }}/{{ e.tally?.quorumNeeded || 0 }}
               <em>(2/3 sur {{ e.tally?.totalMembers || 0 }})</em>
+              · 👥 {{ e.tally?.voters || 0 }} votant(s)
             </span>
             <span *ngIf="e.myVote" class="myvote">— votre vote : {{ e.myVote === 'yes' ? 'OUI' : 'NON' }}</span>
             <span *ngIf="!e.myVote" class="tovote">— à voter</span>
@@ -120,6 +126,12 @@ export class EventsListPage implements OnInit {
 
   emojiFor(t: FamilyEvent['type']) {
     return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌', loan: '💰', external: '🎁' }[t];
+  }
+
+  participantLabel(e: FamilyEvent): string {
+    if (e.type === 'external') return e.participantsCount === 1 ? 'cotisant' : 'cotisants';
+    if (e.type === 'loan') return 'remboursement(s)';
+    return e.participantsCount === 1 ? 'allouant' : 'allouants';
   }
 
   statusLabel(e: FamilyEvent) {

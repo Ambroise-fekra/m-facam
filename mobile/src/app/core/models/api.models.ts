@@ -31,6 +31,8 @@ export interface CashSnapshot {
   totalAllocated: string;
   loansOutstanding?: string;
   loansActiveCount?: number;
+  /** Number of distinct members who have at least one completed contribution. */
+  contributorsCount?: number;
 }
 
 export type EventType = 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan' | 'external';
@@ -75,6 +77,8 @@ export interface FamilyEvent {
   payoutMethod?: string | null;
   payoutNote?: string | null;
   payoutAt?: string | null;
+  /** Distinct contributors to this event's main flow (allocators / external / repayers). */
+  participantsCount?: number;
 }
 
 export type PayoutMethod = 'transfer' | 'cash' | 'cheque' | 'paypal' | 'other';

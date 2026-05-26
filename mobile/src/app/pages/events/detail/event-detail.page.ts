@@ -68,6 +68,12 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         <div class="row"><span>💰 Clôture des cotisations</span><strong>{{ event.deadline | date: 'dd/MM/yyyy' }}</strong></div>
         <div class="row" *ngIf="event.status === 'proposed'"><span>🗳️ Fin du vote</span><strong>{{ event.decisionDeadline | date: 'dd/MM/yyyy' }}</strong></div>
         <div class="row"><span>👤 Responsable</span><strong>{{ event.responsibleName }}</strong></div>
+        <div class="row" *ngIf="event.status === 'proposed' && event.tally">
+          <span>👥 Votants</span><strong>{{ event.tally.voters }} / {{ event.tally.totalMembers }}</strong>
+        </div>
+        <div class="row" *ngIf="event.status !== 'proposed' && (event.participantsCount ?? 0) > 0">
+          <span>👥 {{ participantLabelFull() }}</span><strong>{{ event.participantsCount }}</strong>
+        </div>
       </div>
 
       <ion-button expand="block" fill="outline" class="wa" (click)="announce()">💬 Annoncer sur WhatsApp</ion-button>
@@ -385,6 +391,13 @@ export class EventDetailPage implements OnInit {
 
   emojiFor(t: FamilyEvent['type']) {
     return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌', loan: '💰', external: '🎁' }[t];
+  }
+
+  participantLabelFull(): string {
+    if (!this.event) return 'Participants';
+    if (this.event.type === 'external') return this.event.participantsCount === 1 ? 'Cotisant externe' : 'Cotisants externes';
+    if (this.event.type === 'loan') return 'Remboursements effectués';
+    return this.event.participantsCount === 1 ? 'Allouant' : 'Allouants';
   }
 
   isBorrower(): boolean {

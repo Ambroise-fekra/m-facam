@@ -53,6 +53,9 @@ import { Member } from '../../../core/models/api.models';
           <div>
             <div class="fam-name">{{ info.name }}</div>
             <div class="ident" (click)="copyId()">{{ info.identifier }} 📋</div>
+            <div class="fam-count" *ngIf="info.membersCount != null">
+              👥 {{ info.membersCount }} membre(s)<span *ngIf="info.activeMembersCount != null"> dont <strong>{{ info.activeMembersCount }} actif(s)</strong></span>
+            </div>
           </div>
         </div>
         <p *ngIf="auth.isAdmin" class="logo-hint" (click)="changeLogo()">📷 {{ info.photo ? 'Changer' : 'Ajouter' }} le logo de la famille</p>
@@ -124,6 +127,8 @@ import { Member } from '../../../core/models/api.models';
       .fam-logo.editable { cursor: pointer; border: 1px dashed rgba(255,255,255,.3); }
       .fam-name { color: #fff; font-weight: 800; font-size: 1.2rem; }
       .ident { color: #cbd5e1; font-family: 'Space Grotesk', monospace; cursor: pointer; font-size: .9rem; margin-top: 2px; }
+      .fam-count { color: #94a3b8; font-size: .85rem; margin-top: 3px; }
+      .fam-count strong { color: #fff; }
       .logo-hint { color: #a5b4fc; font-size: .82rem; cursor: pointer; margin: 10px 0; }
       .chief-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: #cbd5e1; margin: 6px 0 4px; font-size: .92rem; }
       .chief-row .chief-label { color: #94a3b8; }
