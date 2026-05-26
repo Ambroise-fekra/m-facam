@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { Member } from '../members/member.entity';
 
-export type EventType = 'wedding' | 'death' | 'project' | 'birthday' | 'other';
+export type EventType = 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan';
 export type EventStatus = 'proposed' | 'active' | 'closed' | 'cancelled' | 'rejected';
 
 @Entity({ name: 'events' })
@@ -56,6 +56,14 @@ export class Event {
 
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdById: string | null;
+
+  /** For type='loan': the member receiving the loan. */
+  @ManyToOne(() => Member, { onDelete: 'RESTRICT', nullable: true })
+  @JoinColumn({ name: 'borrower_id' })
+  borrower: Member | null;
+
+  @Column({ name: 'borrower_id', type: 'uuid', nullable: true })
+  borrowerId: string | null;
 
   @Column({ type: 'varchar', length: 16, default: 'proposed' })
   status: EventStatus;

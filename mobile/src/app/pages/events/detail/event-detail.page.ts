@@ -54,6 +54,13 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
       </div>
       <p class="t-muted" *ngIf="event.description">{{ event.description }}</p>
 
+      <!-- Loan banner -->
+      <div class="facam-card loan-banner" *ngIf="event.type === 'loan'">
+        💰 <strong>Prêt</strong> de <strong>{{ event.targetAmount }} €</strong>
+        à <strong>{{ event.borrowerName }}</strong>
+        — échéance de remboursement le <strong>{{ event.deadline | date: 'dd/MM/yyyy' }}</strong>.
+      </div>
+
       <!-- Dates -->
       <div class="facam-card dates">
         <div class="row"><span>🗓️ Créé le</span><strong>{{ event.createdAt | date: 'dd/MM/yyyy' }}</strong></div>
@@ -86,7 +93,10 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         <div class="rule-line state" *ngIf="event.tally">
           <span>{{ event.tally.passed ? '✅ Proposition adoptée' : (event.tally.voters > 0 ? '⏳ En attente' : '⏳ Aucun vote') }}</span>
         </div>
-        <div class="vote-btns">
+        <div class="borrower-note" *ngIf="event.type === 'loan' && event.borrowerId === auth.snapshot?.member?.id">
+          ℹ️ Vous êtes l'<strong>emprunteur</strong> : vous ne pouvez pas voter sur votre propre demande de prêt.
+        </div>
+        <div class="vote-btns" *ngIf="!(event.type === 'loan' && event.borrowerId === auth.snapshot?.member?.id)">
           <ion-button expand="block" [fill]="myVote === 'yes' ? 'solid' : 'outline'" color="success" (click)="castVote('yes')">
             {{ myVote === 'yes' ? '✓ ' : '' }}Pour
           </ion-button>
@@ -104,8 +114,8 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         </div>
       </div>
 
-      <!-- FUNDING (active) -->
-      <ng-container *ngIf="event.status === 'active'">
+      <!-- FUNDING (active, non-loan) -->
+      <ng-container *ngIf="event.status === 'active' && event.type !== 'loan'">
         <div class="facam-card">
           <div class="row"><span>🎯 Objectif</span><strong>{{ event.targetAmount }} €</strong></div>
           <div class="row"><span>💶 Collecté</span><strong>{{ event.totalCollected }} €</strong></div>
@@ -129,6 +139,67 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         <div class="facam-card" *ngIf="auth.isAdmin">
           <p class="t-muted small">Administrateur : si les fonds sont prêts, vous pouvez clôturer maintenant (sinon clôture automatique à l'échéance).</p>
           <ion-button expand="block" fill="outline" color="warning" (click)="closeNow()">🏁 Clôturer maintenant</ion-button>
+        </div>
+      </ng-container>
+
+      <!-- LOAN active : suivi des remboursements (pas d'allocation) -->
+      <ng-container *ngIf="event.status === 'active' && event.type === 'loan'">
+        <div class="facam-card">
+          <div class="row"><span>💰 Montant prêté</span><strong>{{ event.targetAmount }} €</strong></div>
+          <div class="row"><span>↩️ Remboursé</span><strong>{{ event.totalCollected }} €</strong></div>
+          <div class="row"><span>⏳ Reste dû</span><strong class="t-accent">{{ remainingLoan() | number:'1.2-2' }} €</strong></div>
+          <div class="bar-label">↩️ Remboursement</div>
+          <div class="facam-progress"><div class="facam-progress-fill" [style.width.%]="ratio()"></div></div>
+          <div class="bar-label">⏳ Temps avant échéance — {{ daysLeft() }} j restants</div>
+          <div class="facam-progress"><div class="facam-progress-fill time" [style.width.%]="timeRatio()"></div></div>
+        </div>
+
+        <!-- Disbursement pending → reuse existing settle UI (admin) -->
+        <div class="facam-card pending" *ngIf="event.payoutStatus !== 'done' && !auth.isAdmin">
+          ⏳ En attente de la remise des fonds à l'emprunteur par l'administrateur.
+        </div>
+        <div class="facam-card" *ngIf="event.payoutStatus !== 'done' && auth.isAdmin">
+          <h3 class="h-title">💸 Remettre les fonds à l'emprunteur</h3>
+          <p class="t-muted small">Remettez <strong>{{ event.targetAmount }} €</strong> à {{ event.borrowerName }}, puis enregistrez le mode.</p>
+          <label class="fld-label req">Mode de versement</label>
+          <ion-select class="fld" interface="alert" [(ngModel)]="payoutMethod" placeholder="Choisir">
+            <ion-select-option value="transfer">Virement bancaire</ion-select-option>
+            <ion-select-option value="cash">Espèces</ion-select-option>
+            <ion-select-option value="cheque">Chèque</ion-select-option>
+            <ion-select-option value="paypal">PayPal</ion-select-option>
+            <ion-select-option value="other">Autre</ion-select-option>
+          </ion-select>
+          <label class="fld-label">Note (optionnel)</label>
+          <ion-input class="fld" [(ngModel)]="payoutNote" placeholder="Réf., date…"></ion-input>
+          <ion-button expand="block" class="ion-margin-top" color="success" [disabled]="!payoutMethod" (click)="settle()">
+            Marquer comme versé
+          </ion-button>
+        </div>
+
+        <!-- Disbursement done → repayment form for borrower -->
+        <div class="facam-card" *ngIf="event.payoutStatus === 'done' && isBorrower()">
+          <h3 class="h-title">↩️ Enregistrer un remboursement</h3>
+          <p class="t-muted small">Vous devez encore <strong>{{ remainingLoan() | number:'1.2-2' }} €</strong>.</p>
+          <label class="fld-label req">Montant (€)</label>
+          <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="repayAmount" placeholder="0"></ion-input>
+          <label class="fld-label">Mode (optionnel)</label>
+          <ion-select class="fld" interface="alert" [(ngModel)]="repayMethod" placeholder="Choisir">
+            <ion-select-option value="transfer">Virement bancaire</ion-select-option>
+            <ion-select-option value="cash">Espèces</ion-select-option>
+            <ion-select-option value="cheque">Chèque</ion-select-option>
+            <ion-select-option value="paypal">PayPal</ion-select-option>
+            <ion-select-option value="other">Autre</ion-select-option>
+          </ion-select>
+          <label class="fld-label">Note</label>
+          <ion-input class="fld" [(ngModel)]="repayNote" placeholder="Réf., date…"></ion-input>
+          <ion-button expand="block" class="ion-margin-top" color="success" [disabled]="!canRepay()" (click)="repay()">
+            Enregistrer le remboursement
+          </ion-button>
+        </div>
+
+        <div class="facam-card" *ngIf="event.payoutStatus === 'done' && auth.isAdmin">
+          <ion-button expand="block" fill="outline" color="warning" (click)="closeNow()">🏁 Clôturer le prêt maintenant</ion-button>
+          <p class="t-muted small" style="margin-top:8px">Force la clôture (par exemple si le solde restant est définitivement perdu — l'emprunteur sera bloqué tant qu'il n'est pas débloqué.)</p>
         </div>
       </ng-container>
 
@@ -198,6 +269,11 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
       .paid { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.3); }
       .pending { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.35); color: #fde68a; line-height: 1.5; }
       .pending strong { color: #fff; }
+      .loan-banner { background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.30); color: #6ee7b7; line-height: 1.5; }
+      .loan-banner strong { color: #fff; }
+      .borrower-note { background: rgba(59,130,246,.10); border: 1px solid rgba(59,130,246,.3); color: #93c5fd; border-radius: 10px; padding: 10px; margin: 10px 0 6px; font-size: .88rem; }
+      .borrower-note strong { color: #fff; }
+      .t-accent { color: var(--facam-accent); font-weight: 700; }
     `,
   ],
 })
@@ -217,6 +293,9 @@ export class EventDetailPage implements OnInit {
   myVote: VoteValue | null = null;
   payoutMethod = '';
   payoutNote = '';
+  repayAmount = 0;
+  repayMethod = '';
+  repayNote = '';
 
   ngOnInit() {
     this.reload();
@@ -252,7 +331,48 @@ export class EventDetailPage implements OnInit {
   }
 
   emojiFor(t: FamilyEvent['type']) {
-    return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌' }[t];
+    return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌', loan: '💰' }[t];
+  }
+
+  isBorrower(): boolean {
+    return !!this.event && this.event.type === 'loan' && this.event.borrowerId === this.auth.snapshot?.member?.id;
+  }
+
+  remainingLoan(): number {
+    if (!this.event) return 0;
+    return Math.max(0, Number(this.event.targetAmount) - Number(this.event.totalCollected));
+  }
+
+  canRepay(): boolean {
+    return this.repayAmount > 0 && this.repayAmount <= this.remainingLoan() + 0.005;
+  }
+
+  async repay() {
+    if (!this.event || !this.canRepay()) return;
+    const confirm = await this.alertCtrl.create({
+      header: 'Confirmer le remboursement',
+      message: `Enregistrer un remboursement de ${this.repayAmount} € ?`,
+      buttons: [{ text: 'Annuler', role: 'cancel' }, { text: 'Confirmer', role: 'confirm' }],
+    });
+    await confirm.present();
+    const { role } = await confirm.onDidDismiss();
+    if (role !== 'confirm') return;
+    const loading = await this.loadingCtrl.create({ message: 'Enregistrement…' });
+    await loading.present();
+    this.api
+      .recordRepayment(this.event.id, this.repayAmount, this.repayMethod || undefined, this.repayNote || undefined)
+      .subscribe({
+        next: async () => {
+          await loading.dismiss();
+          const t = await this.toastCtrl.create({ message: 'Remboursement enregistré', color: 'success', duration: 2000 });
+          await t.present();
+          this.repayAmount = 0;
+          this.repayMethod = '';
+          this.repayNote = '';
+          this.reload();
+        },
+        error: () => loading.dismiss(),
+      });
   }
   statusLabel() {
     const s = this.event!.status;

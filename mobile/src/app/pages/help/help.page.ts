@@ -58,6 +58,16 @@ import {
         <li>À l'<strong>échéance</strong>, l'évènement est clôturé. L'<strong>administrateur remet le total au responsable</strong> par le canal choisi (virement, espèces, chèque ou PayPal) et <strong>enregistre le versement</strong> dans l'app.</li>
       </ul>
 
+      <h2 class="g-h2">💰 Prêt à un membre (évènement particulier)</h2>
+      <ul>
+        <li>Un membre actif peut <strong>demander un prêt</strong> à la caisse familiale (évènement de type <em>Prêt</em>).</li>
+        <li>Le <strong>vote</strong> a lieu comme pour tout évènement, mais l'<strong>emprunteur est exclu</strong> du vote et du quorum.</li>
+        <li>Plafond : le prêt ne peut excéder <strong>1/5 de la caisse</strong>. La caisse ne peut avoir <strong>plus de 2 prêts</strong> simultanés.</li>
+        <li>Après vote favorable, l'<strong>admin remet les fonds</strong> à l'emprunteur (virement, espèces, chèque, PayPal).</li>
+        <li>L'<strong>emprunteur rembourse</strong> via des « remboursements » enregistrés depuis la fiche de l'évènement (les autres membres ne peuvent rien y allouer).</li>
+        <li>L'<strong>échéance</strong> de l'évènement est la <strong>date de remboursement</strong>. Si non remboursé à temps, le compte de l'emprunteur est <strong>bloqué</strong> (plus de votes, d'évènements ni de prêts) jusqu'à <strong>déblocage par l'admin</strong>.</li>
+      </ul>
+
       <h2 class="g-h2">📊 Soldes, transactions & suivi</h2>
       <ul>
         <li><strong>Tableau de bord</strong> : la <strong>caisse familiale</strong> (total) et <strong>votre part</strong>.</li>

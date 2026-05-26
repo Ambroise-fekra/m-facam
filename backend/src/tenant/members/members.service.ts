@@ -98,6 +98,7 @@ export class MembersService {
       fatherName: nameOf(m.fatherId),
       motherName: nameOf(m.motherId),
       photo: m.photo,
+      isBlocked: m.isBlocked,
       children,
     };
   }
@@ -147,6 +148,19 @@ export class MembersService {
 
   async me(fam: FamilyContext) {
     return this.findOne(fam, fam.memberId);
+  }
+
+  /** Admin only: toggle the is_blocked flag (e.g. after a loan is settled). */
+  async setBlocked(fam: FamilyContext, id: string, blocked: boolean) {
+    if (!fam.isAdmin) {
+      throw new ForbiddenException('Réservé à l\'administrateur');
+    }
+    const repo = await this.repo(fam.identifier);
+    const m = await repo.findOne({ where: { id } });
+    if (!m) throw new NotFoundException('Member not found');
+    m.isBlocked = blocked;
+    await repo.save(m);
+    return { id: m.id, isBlocked: m.isBlocked };
   }
 
   /** Updates a member's profile. Allowed for the member themselves or an admin. */

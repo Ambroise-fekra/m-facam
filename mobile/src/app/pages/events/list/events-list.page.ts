@@ -117,7 +117,7 @@ export class EventsListPage implements OnInit {
   }
 
   emojiFor(t: FamilyEvent['type']) {
-    return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌' }[t];
+    return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌', loan: '💰' }[t];
   }
 
   statusLabel(e: FamilyEvent) {

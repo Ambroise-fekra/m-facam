@@ -14,6 +14,8 @@ import { FamilyContext } from '../../common/decorators/family-context.decorator'
 import { Event } from './event.entity';
 import { EventVote, VoteValue } from './event-vote.entity';
 import { Allocation } from '../allocations/allocation.entity';
+import { Contribution } from '../contributions/contribution.entity';
+import { LoanRepayment } from '../loans/loan-repayment.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { SettleEventDto } from './dto/settle-event.dto';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -47,11 +49,47 @@ export class EventsService {
 
   async create(fam: FamilyContext, dto: CreateEventDto): Promise<Event> {
     const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
-    const repo = ds.getRepository(Event);
+    const eventRepo = ds.getRepository(Event);
+    const memberRepo = ds.getRepository(Member);
+
+    // Block: no one whose account is blocked can post an event of any kind.
+    const me = await memberRepo.findOne({ where: { id: fam.memberId } });
+    if (!me || !me.isActive) throw new ForbiddenException('Membre inactif');
+    if (me.isBlocked) {
+      throw new ForbiddenException('Votre compte est bloqué (prêt impayé). Contactez l\'administrateur.');
+    }
+
+    let borrowerId: string | null = null;
+    let responsibleId = dto.responsibleId;
+
+    if (dto.type === 'loan') {
+      // Loan-specific rules.
+      if (!dto.borrowerId) throw new BadRequestException('L\'emprunteur est obligatoire pour un prêt');
+      if (dto.borrowerId !== fam.memberId) {
+        throw new BadRequestException('Seul l\'emprunteur lui-même peut demander son prêt');
+      }
+      // Caisse cap: loan ≤ 1/5 of the current global cash.
+      const cash = await this.globalCashForLoan(ds);
+      const cap = cash / 5;
+      if (dto.targetAmount > cap + 0.005) {
+        throw new BadRequestException(
+          `Montant maximum d'un prêt : ${cap.toFixed(2)} € (1/5 de la caisse ${cash.toFixed(2)} €).`,
+        );
+      }
+      // At most 2 active loans concurrently across the family.
+      const active = await eventRepo.count({ where: { type: 'loan', status: 'active' } });
+      const proposed = await eventRepo.count({ where: { type: 'loan', status: 'proposed' } });
+      if (active + proposed >= 2) {
+        throw new BadRequestException('La caisse a déjà 2 prêts en cours ou en cours de vote.');
+      }
+      borrowerId = dto.borrowerId;
+      responsibleId = dto.borrowerId; // borrower receives the funds
+    }
+
     const decisionDeadline = dto.decisionDeadline
       ? new Date(dto.decisionDeadline)
       : new Date(Date.now() + 7 * 86_400_000);
-    const event = repo.create({
+    const event = eventRepo.create({
       type: dto.type,
       title: dto.title,
       description: dto.description ?? null,
@@ -59,18 +97,53 @@ export class EventsService {
       eventDate: dto.eventDate ? new Date(dto.eventDate) : null,
       deadline: new Date(dto.deadline),
       decisionDeadline,
-      responsibleId: dto.responsibleId,
+      responsibleId,
+      borrowerId,
       createdById: fam.memberId,
       status: 'proposed',
     });
-    await repo.save(event);
+    await eventRepo.save(event);
 
+    const titleNotif = dto.type === 'loan' ? '💰 Demande de prêt à voter' : '🗳️ Nouvel évènement à voter';
     await this.notifications.broadcast(fam, 'event_created', {
-      title: '🗳️ Nouvel évènement à voter',
+      title: titleNotif,
       body: `${event.title} — votez avant le ${decisionDeadline.toLocaleDateString('fr-FR')}`,
       payload: { eventId: event.id, action: 'vote' },
     });
     return event;
+  }
+
+  /** Inline cash computation used to enforce the 1/5 loan cap. Returns 0 if any
+   * component is missing. */
+  private async globalCashForLoan(ds: DataSource): Promise<number> {
+    const contributed = await ds
+      .getRepository(Contribution)
+      .createQueryBuilder('c')
+      .select('COALESCE(SUM(c.amount), 0)', 'total')
+      .where("c.status = 'completed'")
+      .getRawOne();
+    const allocated = await ds
+      .getRepository(Allocation)
+      .createQueryBuilder('a')
+      .select('COALESCE(SUM(a.amount), 0)', 'total')
+      .getRawOne();
+    const loansOut = await ds
+      .getRepository(Event)
+      .createQueryBuilder('e')
+      .select('COALESCE(SUM(e.target_amount), 0)', 'total')
+      .where("e.type = 'loan' AND e.payout_status = 'done'")
+      .getRawOne();
+    const repaid = await ds
+      .getRepository(LoanRepayment)
+      .createQueryBuilder('r')
+      .select('COALESCE(SUM(r.amount), 0)', 'total')
+      .getRawOne();
+    return (
+      Number(contributed?.total ?? 0) -
+      Number(allocated?.total ?? 0) -
+      Number(loansOut?.total ?? 0) +
+      Number(repaid?.total ?? 0)
+    );
   }
 
   // ---------- Reads ----------
@@ -97,6 +170,22 @@ export class EventsService {
     const responsibleName = e.responsible
       ? `${e.responsible.firstName} ${e.responsible.lastName}`
       : null;
+    // For loan events: progress = repayments (not allocations) and there are no
+    // member allocations to track.
+    let totalCollected: string;
+    let myAllocation: string;
+    let borrowerName: string | null = null;
+    if (e.type === 'loan') {
+      totalCollected = await this.totalRepaidForLoan(ds, e.id);
+      myAllocation = '0.00';
+      if (e.borrowerId) {
+        const b = await ds.getRepository(Member).findOne({ where: { id: e.borrowerId } });
+        if (b) borrowerName = `${b.firstName} ${b.lastName}`;
+      }
+    } else {
+      totalCollected = await this.totalCollectedForEvent(ds, e.id);
+      myAllocation = await this.myAllocationForEvent(ds, e.id, fam.memberId);
+    }
     const base = {
       id: e.id,
       type: e.type,
@@ -108,11 +197,13 @@ export class EventsService {
       decisionDeadline: e.decisionDeadline,
       responsibleId: e.responsibleId,
       responsibleName,
+      borrowerId: e.borrowerId,
+      borrowerName,
       status: e.status,
       createdAt: e.createdAt,
       closedAt: e.closedAt,
-      totalCollected: await this.totalCollectedForEvent(ds, e.id),
-      myAllocation: await this.myAllocationForEvent(ds, e.id, fam.memberId),
+      totalCollected,
+      myAllocation,
     };
     const withPayout = {
       ...base,
@@ -147,6 +238,16 @@ export class EventsService {
     return Number(row?.total ?? 0).toFixed(2);
   }
 
+  private async totalRepaidForLoan(ds: DataSource, eventId: string): Promise<string> {
+    const row = await ds
+      .getRepository(LoanRepayment)
+      .createQueryBuilder('r')
+      .select('COALESCE(SUM(r.amount), 0)', 'total')
+      .where('r.event_id = :id', { id: eventId })
+      .getRawOne();
+    return Number(row?.total ?? 0).toFixed(2);
+  }
+
   // ---------- Voting ----------
 
   async vote(fam: FamilyContext, eventId: string, value: VoteValue) {
@@ -159,6 +260,15 @@ export class EventsService {
     }
     if (event.decisionDeadline && new Date() > endOfDay(event.decisionDeadline)) {
       throw new BadRequestException('La date limite de vote est dépassée');
+    }
+    // Blocked members can't vote.
+    const me = await ds.getRepository(Member).findOne({ where: { id: fam.memberId } });
+    if (me?.isBlocked) {
+      throw new ForbiddenException('Votre compte est bloqué (prêt impayé).');
+    }
+    // The borrower can't vote on their own loan.
+    if (event.type === 'loan' && event.borrowerId === fam.memberId) {
+      throw new ForbiddenException('L\'emprunteur ne peut pas voter sur sa propre demande de prêt');
     }
 
     const voteRepo = ds.getRepository(EventVote);
@@ -194,11 +304,14 @@ export class EventsService {
   }
 
   private async tally(ds: DataSource, eventId: string): Promise<VoteTally> {
+    const event = await ds.getRepository(Event).findOne({ where: { id: eventId } });
     const votes = await ds.getRepository(EventVote).find({ where: { eventId } });
     const yes = votes.filter((v) => v.value === 'yes').length;
     const no = votes.filter((v) => v.value === 'no').length;
     const voters = yes + no;
-    const totalMembers = await ds.getRepository(Member).count({ where: { isActive: true } });
+    // For a loan, the borrower is excluded from the denominator (they can't vote).
+    let totalMembers = await ds.getRepository(Member).count({ where: { isActive: true } });
+    if (event?.type === 'loan' && event.borrowerId) totalMembers = Math.max(0, totalMembers - 1);
     const quorumNeeded = Math.ceil((totalMembers * 2) / 3);
     const majorityNeeded = Math.ceil((voters * 2) / 3);
     const quorumReached = voters >= quorumNeeded && totalMembers > 0;
@@ -309,15 +422,36 @@ export class EventsService {
   private async closeFamilyDueEvents(family: Family) {
     const ds = await this.tenantRouting.getDataSourceFor(family.identifier);
     const repo = ds.getRepository(Event);
+    const memberRepo = ds.getRepository(Member);
     const due = await repo.find({
       where: { status: 'active', deadline: LessThanOrEqual(new Date()) },
     });
     const ctx = { identifier: family.identifier, memberId: '', familyId: family.id, isAdmin: false } as FamilyContext;
     for (const event of due) {
+      if (event.type === 'loan') {
+        // Loan past deadline: if fully repaid → close, else block the borrower.
+        const repaid = Number(await this.totalRepaidForLoan(ds, event.id));
+        const target = Number(event.targetAmount);
+        if (repaid + 0.005 >= target) {
+          event.status = 'closed';
+          event.closedAt = new Date();
+          await repo.save(event);
+          this.logger.log(`Loan ${event.id} closed (fully repaid).`);
+        } else if (event.borrowerId) {
+          await memberRepo.update({ id: event.borrowerId }, { isBlocked: true });
+          const b = await memberRepo.findOne({ where: { id: event.borrowerId } });
+          await this.notifications.broadcast(ctx, 'event_closed_payout', {
+            title: '⚠️ Prêt impayé à l\'échéance',
+            body: `${b ? b.firstName + ' ' + b.lastName : 'L\'emprunteur'} n'a pas remboursé "${event.title}" (reste dû ${(target - repaid).toFixed(2)} €). Son compte est bloqué jusqu\'à régularisation par l\'admin.`,
+            payload: { eventId: event.id, action: 'overdue' },
+          });
+          this.logger.warn(`Loan ${event.id} overdue, borrower ${event.borrowerId} blocked.`);
+        }
+        continue;
+      }
+      // Non-loan: close + leave payout pending.
       const total = await this.totalCollectedForEvent(ds, event.id);
-      const responsible = await ds.getRepository(Member).findOne({ where: { id: event.responsibleId } });
-      // Payout is manual: close the event and leave payoutStatus 'pending' so the
-      // admin records how the funds are handed over (transfer/cash/cheque/PayPal).
+      const responsible = await memberRepo.findOne({ where: { id: event.responsibleId } });
       event.status = 'closed';
       event.closedAt = new Date();
       await repo.save(event);

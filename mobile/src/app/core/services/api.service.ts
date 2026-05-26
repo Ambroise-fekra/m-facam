@@ -6,6 +6,7 @@ import {
   Birthday,
   CashSnapshot,
   FamilyEvent,
+  LoanRepayment,
   Member,
   MyBalance,
   Notification,
@@ -62,6 +63,8 @@ interface EventCreatePayload {
   deadline: string;
   decisionDeadline?: string;
   responsibleId: string;
+  /** Required when type='loan' — the member taking the loan (= the creator). */
+  borrowerId?: string;
 }
 
 interface MemberCreatePayload {
@@ -168,6 +171,25 @@ export class ApiService {
 
   settleEvent(eventId: string, method: string, note?: string) {
     return this.http.post<FamilyEvent>(`${this.base}/events/${eventId}/settle`, { method, note });
+  }
+
+  // ---- Loans ----
+  recordRepayment(eventId: string, amount: number, method?: string, note?: string) {
+    return this.http.post<LoanRepayment>(`${this.base}/events/${eventId}/repayments`, {
+      amount, method, note,
+    });
+  }
+
+  listRepayments(eventId: string) {
+    return this.http.get<LoanRepayment[]>(`${this.base}/events/${eventId}/repayments`);
+  }
+
+  // ---- Block / unblock (admin) ----
+  blockMember(id: string) {
+    return this.http.post<{ id: string; isBlocked: boolean }>(`${this.base}/members/${id}/block`, {});
+  }
+  unblockMember(id: string) {
+    return this.http.post<{ id: string; isBlocked: boolean }>(`${this.base}/members/${id}/unblock`, {});
   }
 
   allocate(p: AllocationPayload) {

@@ -59,6 +59,10 @@ export class Member {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
+  /** Set to true automatically when the member has an overdue loan; admin can clear. */
+  @Column({ name: 'is_blocked', type: 'boolean', default: false })
+  isBlocked: boolean;
+
   @ManyToOne(() => Member, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'father_id' })
   father: Member | null;

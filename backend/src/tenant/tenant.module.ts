@@ -8,6 +8,7 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { GenealogyModule } from './genealogy/genealogy.module';
 import { AdminModule } from './admin/admin.module';
+import { LoansModule } from './loans/loans.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AdminModule } from './admin/admin.module';
     NotificationsModule,
     GenealogyModule,
     AdminModule,
+    LoansModule,
   ],
 })
 export class TenantModule {}

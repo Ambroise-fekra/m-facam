@@ -31,7 +31,7 @@ export interface CashSnapshot {
   totalAllocated: string;
 }
 
-export type EventType = 'wedding' | 'death' | 'project' | 'birthday' | 'other';
+export type EventType = 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan';
 export type EventStatus = 'proposed' | 'active' | 'closed' | 'cancelled' | 'rejected';
 export type VoteValue = 'yes' | 'no';
 
@@ -57,6 +57,8 @@ export interface FamilyEvent {
   decisionDeadline?: string | null;
   responsibleId: string;
   responsibleName?: string | null;
+  borrowerId?: string | null;
+  borrowerName?: string | null;
   status: EventStatus;
   createdAt?: string;
   closedAt?: string;
@@ -92,7 +94,18 @@ export interface Member {
   fatherName?: string | null;
   motherName?: string | null;
   photo?: string | null;
+  isBlocked?: boolean;
   children?: MemberChild[];
+}
+
+export interface LoanRepayment {
+  id: string;
+  eventId: string;
+  memberId: string;
+  amount: string;
+  method: string | null;
+  note: string | null;
+  createdAt: string;
 }
 
 export interface Birthday {

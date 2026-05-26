@@ -3,6 +3,8 @@ import { TenantRoutingService } from '../../master/tenant/tenant-routing.service
 import { FamilyContext } from '../../common/decorators/family-context.decorator';
 import { Contribution } from './contribution.entity';
 import { Allocation } from '../allocations/allocation.entity';
+import { Event } from '../events/event.entity';
+import { LoanRepayment } from '../loans/loan-repayment.entity';
 import { CreateContributionDto } from './dto/create-contribution.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../../payments/payment-provider.interface';
@@ -120,8 +122,26 @@ export class ContributionsService {
       .createQueryBuilder('a')
       .select('COALESCE(SUM(a.amount), 0)', 'total')
       .getRawOne();
+    // Loan disbursed = leaves caisse; repayments come back in. Both are
+    // separate from regular contributions / allocations.
+    const loansOut = await ds
+      .getRepository(Event)
+      .createQueryBuilder('e')
+      .select('COALESCE(SUM(e.target_amount), 0)', 'total')
+      .where("e.type = 'loan' AND e.payout_status = 'done'")
+      .getRawOne();
+    const repaid = await ds
+      .getRepository(LoanRepayment)
+      .createQueryBuilder('r')
+      .select('COALESCE(SUM(r.amount), 0)', 'total')
+      .getRawOne();
+    const totalCash =
+      Number(contributed?.total ?? 0) -
+      Number(allocated?.total ?? 0) -
+      Number(loansOut?.total ?? 0) +
+      Number(repaid?.total ?? 0);
     return {
-      totalCash: Number(contributed?.total ?? 0).toFixed(2),
+      totalCash: totalCash.toFixed(2),
       totalAllocated: Number(allocated?.total ?? 0).toFixed(2),
     };
   }

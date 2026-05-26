@@ -93,6 +93,10 @@ import { Member } from '../../../core/models/api.models';
             {{ m.firstName }} {{ m.lastName }}
             <span *ngIf="m.role === 'admin'" class="badge badge-proposed">👑 Admin</span>
             <span *ngIf="m.id === auth.snapshot?.member?.id" class="badge badge-active">Vous</span>
+            <span *ngIf="m.isBlocked" class="badge badge-rejected">🚫 Bloqué</span>
+          </div>
+          <div class="rel blocked-note" *ngIf="m.isBlocked && auth.isAdmin">
+            Prêt impayé à l'échéance. <a (click)="unblock(m)">Débloquer →</a>
           </div>
           <div class="rel email" *ngIf="auth.isAdmin && m.email">✉️ {{ m.email }}</div>
           <div class="rel" *ngIf="m.fatherName || m.motherName">⬆️ Parents : {{ parents(m) }}</div>
@@ -130,6 +134,8 @@ import { Member } from '../../../core/models/api.models';
       .rel { color: #94a3b8; font-size: .85rem; margin-top: 4px; }
       .rel.email { color: #cbd5e1; }
       .rel.children { color: #cbd5e1; }
+      .rel.blocked-note { color: #fca5a5; }
+      .rel.blocked-note a { color: #a5b4fc; cursor: pointer; text-decoration: underline; }
       .sub-actions { display: flex; gap: 10px; margin-bottom: 16px; }
       .sub-actions ion-button { flex: 1; --border-radius: 12px; }
       .row-actions { display: flex; flex-direction: column; gap: 8px; align-self: center; flex-shrink: 0; }
@@ -215,6 +221,18 @@ export class MembersListPage implements OnInit {
   notify(m: Member) {
     const fam = this.info?.name ?? 'la famille';
     this.whatsapp.share(`Bonjour ${m.firstName}, message de ${fam} (Family Cash Management).`, m.phone);
+  }
+
+  unblock(m: Member) {
+    this.api.unblockMember(m.id).subscribe(async () => {
+      const t = await this.toastCtrl.create({
+        message: `${m.firstName} ${m.lastName} débloqué(e)`,
+        color: 'success',
+        duration: 1800,
+      });
+      await t.present();
+      this.reload();
+    });
   }
 
   async pickChief() {

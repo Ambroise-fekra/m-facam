@@ -10,8 +10,8 @@ import {
 } from 'class-validator';
 
 export class CreateEventDto {
-  @IsEnum(['wedding', 'death', 'project', 'birthday', 'other'])
-  type: 'wedding' | 'death' | 'project' | 'birthday' | 'other';
+  @IsEnum(['wedding', 'death', 'project', 'birthday', 'other', 'loan'])
+  type: 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan';
 
   @IsString()
   @Length(3, 160)
@@ -41,4 +41,9 @@ export class CreateEventDto {
 
   @IsUUID()
   responsibleId: string;
+
+  /** Required for type='loan' : the member receiving the loan (= the creator). */
+  @IsOptional()
+  @IsUUID()
+  borrowerId?: string;
 }

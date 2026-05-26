@@ -9,6 +9,7 @@ import { EventVote } from '../../tenant/events/event-vote.entity';
 import { Contribution } from '../../tenant/contributions/contribution.entity';
 import { Allocation } from '../../tenant/allocations/allocation.entity';
 import { Notification } from '../../tenant/notifications/notification.entity';
+import { LoanRepayment } from '../../tenant/loans/loan-repayment.entity';
 
 /**
  * Resolves a family identifier to its dedicated PostgreSQL database and
@@ -50,7 +51,7 @@ export class TenantRoutingService {
       type: 'postgres',
       ...baseDbConfig(),
       database: dbName,
-      entities: [Member, Event, EventVote, Contribution, Allocation, Notification],
+      entities: [Member, Event, EventVote, Contribution, Allocation, Notification, LoanRepayment],
       synchronize: false,
       logging: process.env.NODE_ENV !== 'production',
     });

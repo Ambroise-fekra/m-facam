@@ -61,4 +61,16 @@ export class MembersController {
   setPhoto(@CurrentFamily() fam: FamilyContext, @Param('id') id: string, @Body() body: { photo: string }) {
     return this.members.setPhoto(fam, id, body.photo ?? '');
   }
+
+  @Post(':id/block')
+  @ApiOperation({ summary: 'Bloquer un membre (admin) — empêche votes/évènements/prêts' })
+  block(@CurrentFamily() fam: FamilyContext, @Param('id') id: string) {
+    return this.members.setBlocked(fam, id, true);
+  }
+
+  @Post(':id/unblock')
+  @ApiOperation({ summary: 'Débloquer un membre (admin)' })
+  unblock(@CurrentFamily() fam: FamilyContext, @Param('id') id: string) {
+    return this.members.setBlocked(fam, id, false);
+  }
 }
