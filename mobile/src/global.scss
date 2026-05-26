@@ -143,3 +143,34 @@ ion-textarea.fld-light {
 .badge-proposed { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
 .badge-closed { background: rgba(100, 116, 139, 0.22); color: #cbd5e1; }
 .badge-rejected { background: rgba(239, 68, 68, 0.18); color: #f87171; }
+
+/* ===== Select dropdown (ion-alert) — readable on the dark theme =====
+   The app is always dark, but device dark-mode could make the alert text
+   dark-on-dark. Force a dark panel with white text, regardless of OS scheme. */
+.alert-wrapper.sc-ion-alert-md,
+.alert-wrapper.sc-ion-alert-ios,
+.alert-wrapper {
+  --background: #1e293b;
+  background: #1e293b !important;
+}
+.alert-title.sc-ion-alert-md,
+.alert-title.sc-ion-alert-ios,
+.alert-sub-title,
+.alert-message,
+.alert-radio-label,
+.alert-checkbox-label {
+  color: #f1f5f9 !important;
+}
+/* Selected option label */
+[aria-checked='true'].alert-radio-button .alert-radio-label,
+[aria-checked='true'].alert-checkbox-button .alert-checkbox-label {
+  color: #ffffff !important;
+}
+/* OK / Cancel buttons */
+.alert-button,
+.alert-button .alert-button-inner {
+  color: #a5b4fc !important;
+}
+/* Radio outline a bit more visible on dark */
+.alert-radio-inner.sc-ion-alert-md { border-color: #cbd5e1; }
+.alert-radio-icon.sc-ion-alert-md { border-color: #94a3b8; }
