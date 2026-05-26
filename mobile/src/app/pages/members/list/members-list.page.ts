@@ -100,7 +100,7 @@ import { Member } from '../../../core/models/api.models';
           <div class="rel blocked-note" *ngIf="m.isBlocked && auth.isAdmin">
             Prêt impayé à l'échéance. <a (click)="unblock(m)">Débloquer →</a>
           </div>
-          <div class="rel nologin" *ngIf="!m.canLogin && canManageLogin() && m.id !== auth.snapshot?.member?.id">
+          <div class="rel nologin" *ngIf="!m.canLogin && !m.deceasedAt && canManageLogin() && m.id !== auth.snapshot?.member?.id">
             🔒 Ne peut pas se connecter.
             <a (click)="enableLogin(m)">Activer la connexion →</a>
           </div>

@@ -227,6 +227,7 @@ export class MembersService {
     const repo = await this.repo(fam.identifier);
     const me = await repo.findOne({ where: { id: fam.memberId } });
     if (!me || !me.isActive) throw new ForbiddenException('Membre inactif');
+    if (me.deceasedAt) throw new ForbiddenException('Membre décédé');
     if (me.isBlocked) throw new ForbiddenException('Votre compte est bloqué');
     if (me.gender !== 'M' && me.gender !== 'F') {
       throw new BadRequestException(

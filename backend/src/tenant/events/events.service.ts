@@ -52,9 +52,10 @@ export class EventsService {
     const eventRepo = ds.getRepository(Event);
     const memberRepo = ds.getRepository(Member);
 
-    // Block: no one whose account is blocked can post an event of any kind.
+    // Block: no one whose account is blocked / deceased / inactive can post an event.
     const me = await memberRepo.findOne({ where: { id: fam.memberId } });
     if (!me || !me.isActive) throw new ForbiddenException('Membre inactif');
+    if (me.deceasedAt) throw new ForbiddenException('Membre décédé');
     if (me.isBlocked) {
       throw new ForbiddenException('Votre compte est bloqué (prêt impayé). Contactez l\'administrateur.');
     }
@@ -261,8 +262,10 @@ export class EventsService {
     if (event.decisionDeadline && new Date() > endOfDay(event.decisionDeadline)) {
       throw new BadRequestException('La date limite de vote est dépassée');
     }
-    // Blocked members can't vote.
+    // Blocked / deceased / inactive members can't vote.
     const me = await ds.getRepository(Member).findOne({ where: { id: fam.memberId } });
+    if (me?.deceasedAt) throw new ForbiddenException('Membre décédé — vote impossible');
+    if (me && !me.isActive) throw new ForbiddenException('Membre inactif — vote impossible');
     if (me?.isBlocked) {
       throw new ForbiddenException('Votre compte est bloqué (prêt impayé).');
     }
@@ -309,8 +312,14 @@ export class EventsService {
     const yes = votes.filter((v) => v.value === 'yes').length;
     const no = votes.filter((v) => v.value === 'no').length;
     const voters = yes + no;
-    // For a loan, the borrower is excluded from the denominator (they can't vote).
-    let totalMembers = await ds.getRepository(Member).count({ where: { isActive: true } });
+    // Defensive: a deceased member is never an active member, even if some
+    // historical row had is_active=true. Quorum strictly counts members alive
+    // AND active.
+    let totalMembers = await ds
+      .getRepository(Member)
+      .createQueryBuilder('m')
+      .where('m.is_active = true AND m.deceased_at IS NULL')
+      .getCount();
     if (event?.type === 'loan' && event.borrowerId) totalMembers = Math.max(0, totalMembers - 1);
     const quorumNeeded = Math.ceil((totalMembers * 2) / 3);
     const majorityNeeded = Math.ceil((voters * 2) / 3);
