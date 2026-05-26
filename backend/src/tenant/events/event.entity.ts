@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { Member } from '../members/member.entity';
 
-export type EventType = 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan';
+export type EventType = 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan' | 'external';
 export type EventStatus = 'proposed' | 'active' | 'closed' | 'cancelled' | 'rejected';
 
 @Entity({ name: 'events' })
@@ -27,8 +27,12 @@ export class Event {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ name: 'target_amount', type: 'numeric', precision: 12, scale: 2 })
-  targetAmount: string;
+  @Column({ name: 'target_amount', type: 'numeric', precision: 12, scale: 2, nullable: true })
+  targetAmount: string | null;
+
+  /** Indicative amount each member is suggested to contribute (non-loan events). */
+  @Column({ name: 'suggested_per_member', type: 'numeric', precision: 12, scale: 2, nullable: true })
+  suggestedPerMember: string | null;
 
   /** Date réelle de l'évènement (mariage, cérémonie...). */
   @Column({ name: 'event_date', type: 'date', nullable: true })

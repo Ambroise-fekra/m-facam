@@ -62,8 +62,9 @@ import { FamilyEvent } from '../../../core/models/api.models';
           <div class="bar-label">💶 Montant</div>
           <div class="facam-progress"><div class="facam-progress-fill" [style.width.%]="ratio(e)"></div></div>
           <div class="ev-amounts">
-            <span>{{ e.totalCollected }} € / {{ e.targetAmount }} €</span>
-            <span class="mine">ma part : {{ e.myAllocation }} €</span>
+            <span *ngIf="e.targetAmount">{{ e.totalCollected }} € / {{ e.targetAmount }} €</span>
+            <span *ngIf="!e.targetAmount">{{ e.totalCollected }} € collecté(s)</span>
+            <span class="mine">{{ e.type === 'external' ? 'ma contrib.' : 'ma part' }} : {{ e.myAllocation }} €</span>
           </div>
           <div class="bar-label">⏳ Temps — {{ daysLeft(e) }} j restants</div>
           <div class="facam-progress"><div class="facam-progress-fill time" [style.width.%]="timeRatio(e)"></div></div>
@@ -101,6 +102,7 @@ export class EventsListPage implements OnInit {
   }
 
   ratio(e: FamilyEvent) {
+    if (!e.targetAmount) return 0;
     const t = Number(e.targetAmount);
     return t > 0 ? Math.min(100, (Number(e.totalCollected) / t) * 100) : 0;
   }
@@ -117,7 +119,7 @@ export class EventsListPage implements OnInit {
   }
 
   emojiFor(t: FamilyEvent['type']) {
-    return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌', loan: '💰' }[t];
+    return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌', loan: '💰', external: '🎁' }[t];
   }
 
   statusLabel(e: FamilyEvent) {

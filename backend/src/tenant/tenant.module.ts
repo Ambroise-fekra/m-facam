@@ -9,6 +9,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { GenealogyModule } from './genealogy/genealogy.module';
 import { AdminModule } from './admin/admin.module';
 import { LoansModule } from './loans/loans.module';
+import { ExternalModule } from './external/external.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { LoansModule } from './loans/loans.module';
     GenealogyModule,
     AdminModule,
     LoansModule,
+    ExternalModule,
   ],
 })
 export class TenantModule {}

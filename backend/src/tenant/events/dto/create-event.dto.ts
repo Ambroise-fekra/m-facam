@@ -10,8 +10,8 @@ import {
 } from 'class-validator';
 
 export class CreateEventDto {
-  @IsEnum(['wedding', 'death', 'project', 'birthday', 'other', 'loan'])
-  type: 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan';
+  @IsEnum(['wedding', 'death', 'project', 'birthday', 'other', 'loan', 'external'])
+  type: 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan' | 'external';
 
   @IsString()
   @Length(3, 160)
@@ -21,9 +21,17 @@ export class CreateEventDto {
   @IsString()
   description?: string;
 
+  /** Optional for every type except 'loan' (validated in the service). */
+  @IsOptional()
   @IsNumber()
-  @Min(1)
-  targetAmount: number;
+  @Min(0)
+  targetAmount?: number;
+
+  /** Indicative amount each member is suggested to contribute (non-loan). */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  suggestedPerMember?: number;
 
   /** Date réelle de l'évènement (cérémonie). */
   @IsOptional()

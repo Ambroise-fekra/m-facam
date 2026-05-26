@@ -27,6 +27,11 @@ export class AllocationsService {
       if (event.status !== 'active') {
         throw new BadRequestException('Event is no longer open for allocations');
       }
+      if (event.type === 'loan' || event.type === 'external') {
+        throw new BadRequestException(
+          'Ce type d\'évènement ne se finance pas depuis votre part : utilisez la contribution dédiée.',
+        );
+      }
       const balance = await this.contributions.myBalance(fam);
       if (Number(balance.balance) < dto.amount) {
         throw new ConflictException(

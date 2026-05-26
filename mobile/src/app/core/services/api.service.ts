@@ -58,7 +58,10 @@ interface EventCreatePayload {
   type: FamilyEvent['type'];
   title: string;
   description?: string;
-  targetAmount: number;
+  /** Optional except for loans. 0 / undefined = no fixed objective. */
+  targetAmount?: number;
+  /** Per-member suggested amount (non-loan). */
+  suggestedPerMember?: number;
   eventDate?: string;
   deadline: string;
   decisionDeadline?: string;
@@ -184,6 +187,17 @@ export class ApiService {
 
   listRepayments(eventId: string) {
     return this.http.get<LoanRepayment[]>(`${this.base}/events/${eventId}/repayments`);
+  }
+
+  // ---- External events ----
+  contributeExternal(eventId: string, amount: number, method?: string, note?: string) {
+    return this.http.post(`${this.base}/events/${eventId}/external-contributions`, { amount, method, note });
+  }
+
+  listExternalContributions(eventId: string) {
+    return this.http.get<import('../models/api.models').ExternalContribution[]>(
+      `${this.base}/events/${eventId}/external-contributions`,
+    );
   }
 
   // ---- Block / unblock (admin) ----

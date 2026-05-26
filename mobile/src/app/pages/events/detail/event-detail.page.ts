@@ -114,25 +114,51 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         </div>
       </div>
 
-      <!-- FUNDING (active, non-loan) -->
+      <!-- FUNDING (active, non-loan) — both classical and external share this header card -->
       <ng-container *ngIf="event.status === 'active' && event.type !== 'loan'">
         <div class="facam-card">
-          <div class="row"><span>🎯 Objectif</span><strong>{{ event.targetAmount }} €</strong></div>
+          <div class="row" *ngIf="event.targetAmount"><span>🎯 Objectif</span><strong>{{ event.targetAmount }} €</strong></div>
+          <div class="row" *ngIf="!event.targetAmount"><span>🎯 Objectif</span><strong class="t-muted">Pas d'objectif fixé</strong></div>
+          <div class="row" *ngIf="event.suggestedPerMember"><span>💡 Suggéré par membre</span><strong class="t-accent">{{ event.suggestedPerMember }} €</strong></div>
           <div class="row"><span>💶 Collecté</span><strong>{{ event.totalCollected }} €</strong></div>
-          <div class="row"><span>🙋 Votre part (privée)</span><strong class="t-accent">{{ event.myAllocation }} €</strong></div>
-          <div class="bar-label">💶 Montant collecté</div>
-          <div class="facam-progress"><div class="facam-progress-fill" [style.width.%]="ratio()"></div></div>
+          <div class="row"><span>🙋 {{ event.type === 'external' ? 'Ma contribution' : 'Ma part (privée)' }}</span><strong class="t-accent">{{ event.myAllocation }} €</strong></div>
+          <div class="bar-label" *ngIf="event.targetAmount">💶 Avancement</div>
+          <div class="facam-progress" *ngIf="event.targetAmount"><div class="facam-progress-fill" [style.width.%]="ratio()"></div></div>
           <div class="bar-label">⏳ Temps avant clôture — {{ daysLeft() }} j restants</div>
           <div class="facam-progress"><div class="facam-progress-fill time" [style.width.%]="timeRatio()"></div></div>
         </div>
 
-        <div class="facam-card">
+        <!-- Classical event: allocate from share -->
+        <div class="facam-card" *ngIf="event.type !== 'external'">
           <h3 class="h-title">Allouer depuis mon solde</h3>
           <p class="t-muted small" *ngIf="balance">Solde disponible : {{ balance.balance }} €</p>
           <label class="fld-label">Montant à allouer (€)</label>
           <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="amount" placeholder="0"></ion-input>
           <ion-button expand="block" class="ion-margin-top" [disabled]="!canAllocate()" (click)="allocate()">
             Confirmer l'allocation
+          </ion-button>
+        </div>
+
+        <!-- External event: targeted contribution (no share involved) -->
+        <div class="facam-card" *ngIf="event.type === 'external'">
+          <h3 class="h-title">🎁 Cotiser ciblé sur cet évènement</h3>
+          <p class="t-muted small">
+            Votre cotisation va <strong>directement</strong> à cet évènement — elle <strong>ne touche pas votre part</strong> dans la caisse familiale.
+          </p>
+          <label class="fld-label req">Montant (€)</label>
+          <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="extAmount" [placeholder]="event.suggestedPerMember || '0'"></ion-input>
+          <label class="fld-label">Mode (optionnel)</label>
+          <ion-select class="fld" interface="alert" [(ngModel)]="extMethod" placeholder="Choisir">
+            <ion-select-option value="transfer">Virement bancaire</ion-select-option>
+            <ion-select-option value="cash">Espèces</ion-select-option>
+            <ion-select-option value="cheque">Chèque</ion-select-option>
+            <ion-select-option value="paypal">PayPal</ion-select-option>
+            <ion-select-option value="other">Autre</ion-select-option>
+          </ion-select>
+          <label class="fld-label">Note</label>
+          <ion-input class="fld" [(ngModel)]="extNote" placeholder="Réf., date…"></ion-input>
+          <ion-button expand="block" color="success" class="ion-margin-top" [disabled]="!canContributeExt()" (click)="contributeExt()">
+            Enregistrer ma contribution
           </ion-button>
         </div>
 
@@ -296,6 +322,9 @@ export class EventDetailPage implements OnInit {
   repayAmount = 0;
   repayMethod = '';
   repayNote = '';
+  extAmount = 0;
+  extMethod = '';
+  extNote = '';
 
   ngOnInit() {
     this.reload();
@@ -312,9 +341,33 @@ export class EventDetailPage implements OnInit {
   }
 
   ratio() {
-    if (!this.event) return 0;
+    if (!this.event || !this.event.targetAmount) return 0;
     const t = Number(this.event.targetAmount);
     return t > 0 ? Math.min(100, (Number(this.event.totalCollected) / t) * 100) : 0;
+  }
+
+  canContributeExt(): boolean {
+    return this.extAmount > 0;
+  }
+
+  async contributeExt() {
+    if (!this.event || !this.canContributeExt()) return;
+    const loading = await this.loadingCtrl.create({ message: 'Enregistrement…' });
+    await loading.present();
+    this.api
+      .contributeExternal(this.event.id, this.extAmount, this.extMethod || undefined, this.extNote || undefined)
+      .subscribe({
+        next: async () => {
+          await loading.dismiss();
+          const t = await this.toastCtrl.create({ message: 'Contribution enregistrée', color: 'success', duration: 1800 });
+          await t.present();
+          this.extAmount = 0;
+          this.extMethod = '';
+          this.extNote = '';
+          this.reload();
+        },
+        error: () => loading.dismiss(),
+      });
   }
 
   timeRatio(): number {
@@ -331,7 +384,7 @@ export class EventDetailPage implements OnInit {
   }
 
   emojiFor(t: FamilyEvent['type']) {
-    return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌', loan: '💰' }[t];
+    return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌', loan: '💰', external: '🎁' }[t];
   }
 
   isBorrower(): boolean {

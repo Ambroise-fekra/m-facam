@@ -72,7 +72,14 @@ import { Member } from '../../../core/models/api.models';
           <ion-select-option value="birthday">🎂 Anniversaire</ion-select-option>
           <ion-select-option value="other">📌 Autre</ion-select-option>
           <ion-select-option value="loan">💰 Prêt à un membre</ion-select-option>
+          <ion-select-option value="external">🎁 Évènement externe (hors solidarité)</ion-select-option>
         </ion-select>
+
+        <div class="info ext-info" *ngIf="isExternal()">
+          🎁 <strong>Évènement externe</strong> : les membres feront une <strong>cotisation ciblée</strong>
+          sur cet évènement. Les contributions ne touchent <strong>ni votre part dans la caisse</strong>
+          ni la caisse familiale globale.
+        </div>
 
         <label class="fld-label req">Titre</label>
         <ion-input class="fld" formControlName="title" placeholder="Ex : Mariage de Sophie"></ion-input>
@@ -80,12 +87,32 @@ import { Member } from '../../../core/models/api.models';
         <label class="fld-label">Description</label>
         <ion-textarea class="fld" formControlName="description" [rows]="3" placeholder="Détails…"></ion-textarea>
 
-        <!-- Slider montant -->
-        <label class="fld-label">{{ isLoan() ? '💰 Montant du prêt' : '🎯 Montant objectif' }} : <span class="val">{{ form.value.targetAmount }} €</span></label>
-        <ion-range class="rng" formControlName="targetAmount" [min]="100" [max]="10000" [step]="100" [pin]="true" [snaps]="false">
+        <!-- Slider montant objectif (optionnel hors prêt) -->
+        <label class="fld-label" *ngIf="isLoan()">💰 Montant du prêt : <span class="val">{{ form.value.targetAmount }} €</span></label>
+        <ion-range *ngIf="isLoan()" class="rng" formControlName="targetAmount" [min]="100" [max]="10000" [step]="100" [pin]="true" [snaps]="false">
           <span slot="start" class="rng-end">100</span>
           <span slot="end" class="rng-end">10k</span>
         </ion-range>
+
+        <ng-container *ngIf="!isLoan()">
+          <label class="fld-label">
+            🎯 {{ form.value.targetAmount && form.value.targetAmount > 0 ? 'Montant objectif : ' : 'Pas d\\'objectif fixé' }}
+            <span *ngIf="form.value.targetAmount && form.value.targetAmount > 0" class="val">{{ form.value.targetAmount }} €</span>
+          </label>
+          <ion-range class="rng" formControlName="targetAmount" [min]="0" [max]="10000" [step]="100" [pin]="true">
+            <span slot="start" class="rng-end">0</span>
+            <span slot="end" class="rng-end">10k</span>
+          </ion-range>
+
+          <label class="fld-label">
+            💡 {{ form.value.suggestedPerMember && form.value.suggestedPerMember > 0 ? 'Suggestion par membre : ' : 'Aucune suggestion par membre' }}
+            <span *ngIf="form.value.suggestedPerMember && form.value.suggestedPerMember > 0" class="val">{{ form.value.suggestedPerMember }} €</span>
+          </label>
+          <ion-range class="rng" formControlName="suggestedPerMember" [min]="0" [max]="1000" [step]="10" [pin]="true">
+            <span slot="start" class="rng-end">0</span>
+            <span slot="end" class="rng-end">1k</span>
+          </ion-range>
+        </ng-container>
 
         <!-- Slider délai avant échéance -->
         <label class="fld-label">{{ isLoan() ? '⏳ Échéance de remboursement dans' : '⏳ Clôture des cotisations dans' }} : <span class="val">{{ form.value.deadlineDays }} jours</span> ({{ deadlineLabel() }})</label>
@@ -125,6 +152,7 @@ import { Member } from '../../../core/models/api.models';
       .info { background: rgba(245,158,11,.14); border: 1px solid rgba(245,158,11,.3); color: #fde68a; border-radius: 14px; padding: 14px; font-size: .9rem; line-height: 1.5; margin-bottom: 8px; }
       .info strong { color: #fff; }
       .info.loan-info { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.35); color: #6ee7b7; }
+      .info.ext-info { background: rgba(139,92,246,.12); border-color: rgba(139,92,246,.35); color: #c4b5fd; }
       .borrower-self { color: #fff; font-weight: 600; }
       .borrower-self .t-muted { font-weight: 400; }
       .val { color: var(--facam-accent); font-weight: 800; }
@@ -143,10 +171,11 @@ export class EventCreatePage implements OnInit {
 
   members: Member[] = [];
   readonly form = this.fb.nonNullable.group({
-    type: ['wedding' as 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan', Validators.required],
+    type: ['wedding' as 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan' | 'external', Validators.required],
     title: ['', [Validators.required, Validators.minLength(3)]],
     description: [''],
-    targetAmount: [1000, [Validators.required, Validators.min(1)]],
+    targetAmount: [1000, [Validators.required, Validators.min(0)]],
+    suggestedPerMember: [0, [Validators.min(0)]],
     deadlineDays: [60, [Validators.required, Validators.min(1)]],
     eventDate: [''],
     decisionDeadline: ['', Validators.required],
@@ -169,6 +198,10 @@ export class EventCreatePage implements OnInit {
     return this.form.value.type === 'loan';
   }
 
+  isExternal(): boolean {
+    return this.form.value.type === 'external';
+  }
+
   private addDays(days: number): Date {
     return new Date(Date.now() + days * 86_400_000);
   }
@@ -184,12 +217,16 @@ export class EventCreatePage implements OnInit {
     const v = this.form.getRawValue();
     const deadlineIso = this.addDays(v.deadlineDays).toISOString().slice(0, 10);
     const isLoan = v.type === 'loan';
+    const ta = Number(v.targetAmount);
+    const sp = Number(v.suggestedPerMember);
     this.api
       .createEvent({
         type: v.type,
         title: v.title,
         description: v.description || undefined,
-        targetAmount: Number(v.targetAmount),
+        // Loan: required > 0. Other types: 0 = no objective ⇒ omit.
+        targetAmount: isLoan ? ta : ta > 0 ? ta : undefined,
+        suggestedPerMember: !isLoan && sp > 0 ? sp : undefined,
         eventDate: isLoan ? undefined : v.eventDate || undefined,
         deadline: deadlineIso,
         decisionDeadline: v.decisionDeadline || undefined,

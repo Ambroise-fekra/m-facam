@@ -33,7 +33,7 @@ export interface CashSnapshot {
   loansActiveCount?: number;
 }
 
-export type EventType = 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan';
+export type EventType = 'wedding' | 'death' | 'project' | 'birthday' | 'other' | 'loan' | 'external';
 export type EventStatus = 'proposed' | 'active' | 'closed' | 'cancelled' | 'rejected';
 export type VoteValue = 'yes' | 'no';
 
@@ -53,7 +53,10 @@ export interface FamilyEvent {
   type: EventType;
   title: string;
   description?: string;
-  targetAmount: string;
+  /** null = no fixed objective (allowed except for loans). */
+  targetAmount: string | null;
+  /** Indicative amount each member is suggested to contribute (non-loan). */
+  suggestedPerMember?: string | null;
   eventDate?: string | null;
   deadline: string;
   decisionDeadline?: string | null;
@@ -107,6 +110,16 @@ export interface Member {
 }
 
 export interface LoanRepayment {
+  id: string;
+  eventId: string;
+  memberId: string;
+  amount: string;
+  method: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface ExternalContribution {
   id: string;
   eventId: string;
   memberId: string;

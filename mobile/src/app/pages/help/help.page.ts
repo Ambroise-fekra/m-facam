@@ -59,6 +59,13 @@ import {
         <li>À l'<strong>échéance</strong>, l'évènement est clôturé. L'<strong>administrateur remet le total au responsable</strong> par le canal choisi (virement, espèces, chèque ou PayPal) et <strong>enregistre le versement</strong> dans l'app.</li>
       </ul>
 
+      <h2 class="g-h2">🎁 Évènement externe (hors solidarité commune)</h2>
+      <ul>
+        <li>Un membre peut proposer un évènement externe (cagnotte hors solidarité familiale).</li>
+        <li>Le vote est standard. Une fois actif, chaque membre fait une <strong>cotisation ciblée</strong> sur l'évènement — l'argent <strong>ne sort pas de sa part</strong> dans la caisse et <strong>ne passe pas par la caisse globale</strong>.</li>
+        <li>À la clôture, l'admin remet le total au responsable (même flux qu'un évènement classique).</li>
+      </ul>
+
       <h2 class="g-h2">💰 Prêt à un membre (évènement particulier)</h2>
       <ul>
         <li>Un membre actif peut <strong>demander un prêt</strong> à la caisse familiale (évènement de type <em>Prêt</em>).</li>

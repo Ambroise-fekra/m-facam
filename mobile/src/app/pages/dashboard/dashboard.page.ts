@@ -113,11 +113,12 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
         </div>
         <div class="ev-meta">👤 {{ e.responsibleName }} · 📅 {{ e.eventDate || e.deadline | date: 'dd/MM/yyyy' }}</div>
 
-        <div class="bar-label">💶 Montant</div>
-        <div class="facam-progress"><div class="facam-progress-fill" [style.width.%]="ratio(e)"></div></div>
+        <div class="bar-label" *ngIf="e.targetAmount">💶 Montant</div>
+        <div class="facam-progress" *ngIf="e.targetAmount"><div class="facam-progress-fill" [style.width.%]="ratio(e)"></div></div>
         <div class="ev-amounts">
-          <span>{{ e.totalCollected }} € / {{ e.targetAmount }} €</span>
-          <span class="mine">ma part : {{ e.myAllocation }} €</span>
+          <span *ngIf="e.targetAmount">{{ e.totalCollected }} € / {{ e.targetAmount }} €</span>
+          <span *ngIf="!e.targetAmount">{{ e.totalCollected }} € collecté(s)</span>
+          <span class="mine">{{ e.type === 'external' ? 'ma contrib.' : 'ma part' }} : {{ e.myAllocation }} €</span>
         </div>
 
         <div class="bar-label">⏳ Temps — {{ daysLeft(e) }} j restants</div>
@@ -210,6 +211,7 @@ export class DashboardPage implements OnInit {
   }
 
   ratio(e: FamilyEvent): number {
+    if (!e.targetAmount) return 0;
     const t = Number(e.targetAmount);
     return t > 0 ? Math.min(100, (Number(e.totalCollected) / t) * 100) : 0;
   }
@@ -227,7 +229,7 @@ export class DashboardPage implements OnInit {
   }
 
   emojiFor(t: FamilyEvent['type']) {
-    return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌', loan: '💰' }[t];
+    return { wedding: '💍', death: '🕯️', project: '🏗️', birthday: '🎂', other: '📌', loan: '💰', external: '🎁' }[t];
   }
 
   hasOutstandingLoans(): boolean {

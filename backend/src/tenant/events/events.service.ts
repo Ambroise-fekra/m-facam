@@ -16,6 +16,7 @@ import { EventVote, VoteValue } from './event-vote.entity';
 import { Allocation } from '../allocations/allocation.entity';
 import { Contribution } from '../contributions/contribution.entity';
 import { LoanRepayment } from '../loans/loan-repayment.entity';
+import { ExternalContribution } from '../external/external-contribution.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { SettleEventDto } from './dto/settle-event.dto';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -64,7 +65,10 @@ export class EventsService {
     let responsibleId = dto.responsibleId;
 
     if (dto.type === 'loan') {
-      // Loan-specific rules.
+      // Loan-specific rules. Target amount IS required.
+      if (!dto.targetAmount || dto.targetAmount <= 0) {
+        throw new BadRequestException('Le montant du prêt est obligatoire');
+      }
       if (!dto.borrowerId) throw new BadRequestException('L\'emprunteur est obligatoire pour un prêt');
       if (dto.borrowerId !== fam.memberId) {
         throw new BadRequestException('Seul l\'emprunteur lui-même peut demander son prêt');
@@ -90,11 +94,19 @@ export class EventsService {
     const decisionDeadline = dto.decisionDeadline
       ? new Date(dto.decisionDeadline)
       : new Date(Date.now() + 7 * 86_400_000);
+    // Target amount: required for loan, optional otherwise. 0 / undefined ⇒ null.
+    const targetAmount = dto.targetAmount && dto.targetAmount > 0 ? dto.targetAmount.toFixed(2) : null;
+    // Per-member suggestion (non-loan).
+    const suggestedPerMember =
+      dto.type !== 'loan' && dto.suggestedPerMember && dto.suggestedPerMember > 0
+        ? dto.suggestedPerMember.toFixed(2)
+        : null;
     const event = eventRepo.create({
       type: dto.type,
       title: dto.title,
       description: dto.description ?? null,
-      targetAmount: dto.targetAmount.toFixed(2),
+      targetAmount,
+      suggestedPerMember,
       eventDate: dto.eventDate ? new Date(dto.eventDate) : null,
       deadline: new Date(dto.deadline),
       decisionDeadline,
@@ -183,6 +195,10 @@ export class EventsService {
         const b = await ds.getRepository(Member).findOne({ where: { id: e.borrowerId } });
         if (b) borrowerName = `${b.firstName} ${b.lastName}`;
       }
+    } else if (e.type === 'external') {
+      // Targeted contributions only — NOT from the member's share.
+      totalCollected = await this.totalExternalForEvent(ds, e.id);
+      myAllocation = await this.myExternalForEvent(ds, e.id, fam.memberId);
     } else {
       totalCollected = await this.totalCollectedForEvent(ds, e.id);
       myAllocation = await this.myAllocationForEvent(ds, e.id, fam.memberId);
@@ -193,6 +209,7 @@ export class EventsService {
       title: e.title,
       description: e.description,
       targetAmount: e.targetAmount,
+      suggestedPerMember: e.suggestedPerMember,
       eventDate: e.eventDate,
       deadline: e.deadline,
       decisionDeadline: e.decisionDeadline,
@@ -245,6 +262,26 @@ export class EventsService {
       .createQueryBuilder('r')
       .select('COALESCE(SUM(r.amount), 0)', 'total')
       .where('r.event_id = :id', { id: eventId })
+      .getRawOne();
+    return Number(row?.total ?? 0).toFixed(2);
+  }
+
+  private async totalExternalForEvent(ds: DataSource, eventId: string): Promise<string> {
+    const row = await ds
+      .getRepository(ExternalContribution)
+      .createQueryBuilder('c')
+      .select('COALESCE(SUM(c.amount), 0)', 'total')
+      .where('c.event_id = :id', { id: eventId })
+      .getRawOne();
+    return Number(row?.total ?? 0).toFixed(2);
+  }
+
+  private async myExternalForEvent(ds: DataSource, eventId: string, memberId: string): Promise<string> {
+    const row = await ds
+      .getRepository(ExternalContribution)
+      .createQueryBuilder('c')
+      .select('COALESCE(SUM(c.amount), 0)', 'total')
+      .where('c.event_id = :id AND c.member_id = :m', { id: eventId, m: memberId })
       .getRawOne();
     return Number(row?.total ?? 0).toFixed(2);
   }
