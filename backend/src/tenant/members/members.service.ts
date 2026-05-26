@@ -7,6 +7,7 @@ import { TenantRoutingService } from '../../master/tenant/tenant-routing.service
 import { Member, MemberGender } from './member.entity';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
+import { DeclareDescendantDto } from './dto/declare-descendant.dto';
 import { FamilyContext } from '../../common/decorators/family-context.decorator';
 import { Family } from '../../master/families/family.entity';
 
@@ -98,6 +99,7 @@ export class MembersService {
       fatherName: nameOf(m.fatherId),
       motherName: nameOf(m.motherId),
       photo: m.photo,
+      isActive: m.isActive,
       isBlocked: m.isBlocked,
       // True if this member has any way to log in (already has a password OR
       // an outstanding invite link). Used by the UI to offer "Activer la
@@ -174,20 +176,76 @@ export class MembersService {
     const repo = await this.repo(fam.identifier);
     const m = await repo.findOne({ where: { id } });
     if (!m) throw new NotFoundException('Member not found');
-    if (!m.isActive) throw new BadRequestException('Membre inactif');
     if (!m.email) {
       throw new BadRequestException(
         'Ajoutez d\'abord un email à ce membre (via « Modifier le profil ») avant d\'activer la connexion.',
       );
     }
     if (m.passwordHash) {
+      // Already able to log in; just make sure they're active too.
+      if (!m.isActive) {
+        m.isActive = true;
+        await repo.save(m);
+      }
       throw new BadRequestException('Ce membre peut déjà se connecter (un mot de passe est défini).');
     }
-    if (!m.inviteToken) {
-      m.inviteToken = randomUUID();
-      await repo.save(m);
+    // Activation = active member + invite link to set password.
+    let changed = false;
+    if (!m.isActive) { m.isActive = true; changed = true; }
+    if (!m.inviteToken) { m.inviteToken = randomUUID(); changed = true; }
+    if (changed) await repo.save(m);
+
+    // If they're added to the master directory and didn't have an entry yet
+    // (e.g. created inactive without email then email added), sync it now.
+    const family = await this.familyRepo.findOne({ where: { id: fam.familyId } });
+    if (family) {
+      const exists = await this.familyRepo.manager.query(
+        `SELECT 1 FROM member_directory WHERE email = $1 AND family_id = $2`,
+        [m.email, family.id],
+      );
+      if (!exists.length) {
+        await this.familyRepo.manager.query(
+          `INSERT INTO member_directory (email, family_id, family_identifier) VALUES ($1, $2, $3)`,
+          [m.email, family.id, family.identifier],
+        );
+      }
     }
-    return { id: m.id, inviteToken: m.inviteToken };
+    return { id: m.id, inviteToken: m.inviteToken! };
+  }
+
+  /**
+   * Any active, non-blocked member can declare one of their own children.
+   * The parent link is inferred from the caller's gender (father if M,
+   * mother if F). The created member is INACTIVE — admin or chef de famille
+   * activates them later via "Activer la connexion".
+   */
+  async declareDescendant(fam: FamilyContext, dto: DeclareDescendantDto): Promise<{ id: string }> {
+    const repo = await this.repo(fam.identifier);
+    const me = await repo.findOne({ where: { id: fam.memberId } });
+    if (!me || !me.isActive) throw new ForbiddenException('Membre inactif');
+    if (me.isBlocked) throw new ForbiddenException('Votre compte est bloqué');
+    if (me.gender !== 'M' && me.gender !== 'F') {
+      throw new BadRequestException(
+        'Renseignez d\'abord votre sexe (Masculin ou Féminin) dans votre profil avant de déclarer un descendant.',
+      );
+    }
+    const member = repo.create({
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      gender: dto.gender,
+      birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
+      phone: dto.phone || null,
+      email: dto.email ? dto.email.toLowerCase() : null,
+      fatherId: me.gender === 'M' ? me.id : null,
+      motherId: me.gender === 'F' ? me.id : null,
+      role: 'member',
+      // Created INACTIVE — admin / chef de famille activates later.
+      isActive: false,
+      passwordHash: null,
+      inviteToken: null,
+    });
+    const saved = await repo.save(member);
+    return { id: saved.id };
   }
 
   /** Admin only: toggle the is_blocked flag (e.g. after a loan is settled). */

@@ -197,6 +197,18 @@ export class ApiService {
     return this.http.post<{ id: string; inviteToken: string }>(`${this.base}/members/${id}/enable-login`, {});
   }
 
+  /** Any active member can declare their own children. */
+  declareDescendant(p: {
+    firstName: string;
+    lastName: string;
+    gender: 'M' | 'F' | 'O';
+    birthDate?: string;
+    phone?: string;
+    email?: string;
+  }) {
+    return this.http.post<{ id: string }>(`${this.base}/members/descendants`, p);
+  }
+
   allocate(p: AllocationPayload) {
     return this.http.post<{ id: string; amount: string }>(`${this.base}/allocations`, p);
   }

@@ -6,6 +6,7 @@ import { CurrentFamily, FamilyContext } from '../../common/decorators/family-con
 import { MembersService } from './members.service';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
+import { DeclareDescendantDto } from './dto/declare-descendant.dto';
 
 @ApiTags('members')
 @ApiBearerAuth()
@@ -60,6 +61,12 @@ export class MembersController {
   @ApiOperation({ summary: 'Set a member photo (self or admin)' })
   setPhoto(@CurrentFamily() fam: FamilyContext, @Param('id') id: string, @Body() body: { photo: string }) {
     return this.members.setPhoto(fam, id, body.photo ?? '');
+  }
+
+  @Post('descendants')
+  @ApiOperation({ summary: 'Déclarer un enfant (membre actif, sexe M/F)' })
+  declareDescendant(@CurrentFamily() fam: FamilyContext, @Body() dto: DeclareDescendantDto) {
+    return this.members.declareDescendant(fam, dto);
   }
 
   @Post(':id/enable-login')

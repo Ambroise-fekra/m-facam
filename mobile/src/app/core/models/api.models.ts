@@ -96,6 +96,8 @@ export interface Member {
   fatherName?: string | null;
   motherName?: string | null;
   photo?: string | null;
+  /** False = "inactive" member: in the family tree but not counted in quorum, can't log in. */
+  isActive?: boolean;
   isBlocked?: boolean;
   /** True if the member already has a password or a pending invite link. */
   canLogin?: boolean;

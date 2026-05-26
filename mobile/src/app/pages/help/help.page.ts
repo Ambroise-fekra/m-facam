@@ -33,8 +33,9 @@ import {
 
       <h2 class="g-h2">👨‍👩‍👧 Les membres</h2>
       <ul>
-        <li>Les membres sont <strong>créés par l'admin</strong> (nom, email, téléphone, filiation père/mère).</li>
-        <li>L'admin les <strong>invite par WhatsApp ou email</strong> via un lien : chaque membre choisit alors <strong>son propre mot de passe</strong> et rejoint la famille.</li>
+        <li>Les membres sont <strong>créés par l'admin</strong> (nom, email, téléphone, filiation père/mère). L'admin les <strong>invite par WhatsApp ou email</strong> via un lien : chaque membre choisit alors <strong>son propre mot de passe</strong>.</li>
+        <li>Chaque membre connecté peut <strong>déclarer ses propres enfants</strong> depuis « Mon profil » → 👶 <em>Ma descendance</em> (prénom, nom, sexe obligatoires). Les enfants sont créés <strong>inactifs</strong> et seront <strong>activés par l'admin ou le chef de famille</strong> le moment venu (par exemple à leur majorité), en cliquant sur « <strong>Activer la connexion</strong> ».</li>
+        <li>Un membre « inactif » apparaît dans l'arbre généalogique mais ne compte pas dans le quorum et ne peut pas se connecter ni participer.</li>
         <li>Chacun peut ajouter sa <strong>photo</strong> ; l'admin peut aussi gérer les photos.</li>
       </ul>
 

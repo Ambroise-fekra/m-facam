@@ -93,12 +93,63 @@ import { Member } from '../../core/models/api.models';
           Enregistrer
         </ion-button>
       </form>
+
+      <!-- Ma descendance : seul un membre éditant SON PROPRE profil peut déclarer ses enfants. -->
+      <div class="facam-card kids" *ngIf="isSelf">
+        <h3 class="h-title">👶 Ma descendance</h3>
+        <p class="t-muted small">Ajoutez vos enfants pour enrichir l'arbre généalogique. Ils sont créés <strong>inactifs</strong> ; l'admin ou le chef de famille les activera plus tard (notamment à leur majorité).</p>
+
+        <div class="kids-list" *ngIf="myChildren().length">
+          <div class="kid" *ngFor="let c of myChildren()">
+            <span class="gender">{{ c.gender === 'M' ? '♂' : c.gender === 'F' ? '♀' : '⚪' }}</span>
+            <span class="name">{{ c.firstName }} {{ c.lastName }}</span>
+            <span *ngIf="c.birthDate" class="year">{{ c.birthDate | date: 'yyyy' }}</span>
+            <span *ngIf="c.isActive === false" class="badge badge-closed">💤 Inactif</span>
+            <span *ngIf="c.canLogin" class="badge badge-active">🔓 Connecté</span>
+          </div>
+        </div>
+        <p *ngIf="!myChildren().length" class="t-muted small empty">Aucun enfant déclaré pour le moment.</p>
+
+        <h4 class="h-sub">+ Ajouter un enfant</h4>
+        <form [formGroup]="childForm" (ngSubmit)="addChild()">
+          <p class="form-legend"><span class="star">*</span> Champ obligatoire</p>
+          <label class="fld-label req">Prénom</label>
+          <ion-input class="fld" formControlName="firstName" placeholder="Sophie"></ion-input>
+          <label class="fld-label req">Nom</label>
+          <ion-input class="fld" formControlName="lastName" placeholder="DUPONT"></ion-input>
+          <label class="fld-label req">Sexe</label>
+          <ion-select class="fld" formControlName="gender" interface="alert" placeholder="Choisir">
+            <ion-select-option value="M">Masculin</ion-select-option>
+            <ion-select-option value="F">Féminin</ion-select-option>
+            <ion-select-option value="O">Autre</ion-select-option>
+          </ion-select>
+          <label class="fld-label">Date de naissance</label>
+          <ion-input class="fld" type="date" formControlName="birthDate"></ion-input>
+          <label class="fld-label">Téléphone</label>
+          <ion-input class="fld" type="tel" formControlName="phone" placeholder="+33 6 …"></ion-input>
+          <label class="fld-label">Email</label>
+          <ion-input class="fld" type="email" formControlName="email" placeholder="prenom@email.com"></ion-input>
+          <ion-button type="submit" expand="block" [disabled]="childForm.invalid" class="ion-margin-top">
+            Ajouter cet enfant
+          </ion-button>
+        </form>
+      </div>
     </ion-content>
   `,
   styles: [
     `
       .intro { margin: 0 0 8px; line-height: 1.5; }
       .sec { margin: 22px 0 4px; font-size: 1.1rem; }
+      .kids { margin-top: 18px; }
+      .kids h3 { margin: 0 0 6px; }
+      .kids-list { margin: 8px 0 4px; }
+      .kid { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(255,255,255,.04); border-radius: 10px; margin-bottom: 6px; color: #cbd5e1; }
+      .kid .gender { color: #cbd5e1; }
+      .kid .name { color: #fff; font-weight: 600; flex: 1; min-width: 0; }
+      .kid .year { color: #94a3b8; font-size: .82rem; }
+      .h-sub { color: #fff; font-size: 1rem; margin: 18px 0 4px; }
+      .empty { padding: 6px 0 0; }
+      .small { font-size: .82rem; }
     `,
   ],
 })
@@ -126,11 +177,58 @@ export class ProfilePage implements OnInit {
     motherId: [''],
   });
 
+  readonly childForm = this.fb.nonNullable.group({
+    firstName: ['', Validators.required],
+    lastName: ['', Validators.required],
+    gender: ['' as '' | 'M' | 'F' | 'O', Validators.required],
+    birthDate: [''],
+    phone: [''],
+    email: ['', Validators.email],
+  });
+
   get males() {
     return this.members.filter((m) => m.gender === 'M' && m.id !== this.targetId);
   }
   get females() {
     return this.members.filter((m) => m.gender === 'F' && m.id !== this.targetId);
+  }
+
+  myChildren(): Member[] {
+    return this.members
+      .filter((m) => m.fatherId === this.targetId || m.motherId === this.targetId)
+      .sort((a, b) => (a.birthDate ?? '').localeCompare(b.birthDate ?? '') || a.firstName.localeCompare(b.firstName));
+  }
+
+  async addChild() {
+    if (this.childForm.invalid) return;
+    const loading = await this.loadingCtrl.create({ message: 'Ajout…' });
+    await loading.present();
+    const v = this.childForm.getRawValue();
+    this.api
+      .declareDescendant({
+        firstName: v.firstName,
+        lastName: v.lastName,
+        gender: v.gender as 'M' | 'F' | 'O',
+        birthDate: v.birthDate || undefined,
+        phone: v.phone || undefined,
+        email: v.email || undefined,
+      })
+      .subscribe({
+        next: async () => {
+          await loading.dismiss();
+          const t = await this.toastCtrl.create({
+            message: 'Enfant ajouté (inactif — à activer par l\'admin/chef)',
+            color: 'success',
+            duration: 2500,
+          });
+          await t.present();
+          this.childForm.reset({
+            firstName: '', lastName: '', gender: '', birthDate: '', phone: '', email: '',
+          });
+          this.api.members().subscribe((list) => (this.members = list));
+        },
+        error: () => loading.dismiss(),
+      });
   }
 
   ngOnInit() {

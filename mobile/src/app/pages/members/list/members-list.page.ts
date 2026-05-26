@@ -94,6 +94,7 @@ import { Member } from '../../../core/models/api.models';
             <span *ngIf="m.role === 'admin'" class="badge badge-proposed">👑 Admin</span>
             <span *ngIf="m.id === auth.snapshot?.member?.id" class="badge badge-active">Vous</span>
             <span *ngIf="m.isBlocked" class="badge badge-rejected">🚫 Bloqué</span>
+            <span *ngIf="m.isActive === false" class="badge badge-closed">💤 Inactif</span>
           </div>
           <div class="rel blocked-note" *ngIf="m.isBlocked && auth.isAdmin">
             Prêt impayé à l'échéance. <a (click)="unblock(m)">Débloquer →</a>
@@ -272,7 +273,8 @@ export class MembersListPage implements OnInit {
               text: '💬 WhatsApp',
               handler: () => {
                 const msg = `Bonjour ${m.firstName}, tu es invité(e) à rejoindre ${famName} sur Family Cash Management. ` +
-                  `Ouvre ce lien pour définir ton mot de passe : ${link}`;
+                  `Ouvre ce lien pour définir ton mot de passe : ${link}\n\n` +
+                  `Une fois connecté(e), tu pourras aussi déclarer ta descendance (tes enfants) depuis ton profil — l'admin les activera plus tard.`;
                 this.whatsapp.share(msg, m.phone);
               },
             },
