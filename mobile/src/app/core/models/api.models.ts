@@ -89,6 +89,18 @@ export interface Member {
   children?: MemberChild[];
 }
 
+export interface Birthday {
+  id: string;
+  firstName: string;
+  lastName: string;
+  photo: string | null;
+  birthDate: string;
+  day: number;
+  month: number;
+  turningAge: number;
+  isThisMonth: boolean;
+}
+
 export interface Transaction {
   id: string;
   type: 'credit' | 'debit';

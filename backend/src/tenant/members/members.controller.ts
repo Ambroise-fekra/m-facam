@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { CurrentFamily, FamilyContext } from '../../common/decorators/family-context.decorator';
 import { MembersService } from './members.service';
 import { CreateMemberDto } from './dto/create-member.dto';
+import { UpdateMemberDto } from './dto/update-member.dto';
 
 @ApiTags('members')
 @ApiBearerAuth()
@@ -25,6 +26,12 @@ export class MembersController {
     return this.members.familyInfo(fam);
   }
 
+  @Get('birthdays')
+  @ApiOperation({ summary: 'Members with a birthday this month or next' })
+  birthdays(@CurrentFamily() fam: FamilyContext) {
+    return this.members.birthdays(fam);
+  }
+
   @Get()
   @ApiOperation({ summary: 'List all family members' })
   list(@CurrentFamily() fam: FamilyContext) {
@@ -34,6 +41,12 @@ export class MembersController {
   @Get(':id')
   findOne(@CurrentFamily() fam: FamilyContext, @Param('id') id: string) {
     return this.members.findOne(fam, id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update a member profile (self or admin)' })
+  update(@CurrentFamily() fam: FamilyContext, @Param('id') id: string, @Body() dto: UpdateMemberDto) {
+    return this.members.update(fam, id, dto);
   }
 
   @Post()

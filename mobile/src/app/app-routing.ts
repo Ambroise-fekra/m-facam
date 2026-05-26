@@ -7,6 +7,8 @@ export const routes: Routes = [
 
   { path: 'legal', loadComponent: () => import('./pages/legal/legal.page').then((m) => m.LegalPage) },
 
+  { path: 'help', loadComponent: () => import('./pages/help/help.page').then((m) => m.HelpPage) },
+
   {
     path: 'auth',
     children: [
@@ -73,7 +75,14 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         loadComponent: () => import('./pages/members/add/member-add.page').then((m) => m.MemberAddPage),
       },
+      { path: 'birthdays', loadComponent: () => import('./pages/birthdays/birthdays.page').then((m) => m.BirthdaysPage) },
+      { path: 'edit/:id', loadComponent: () => import('./pages/profile/profile.page').then((m) => m.ProfilePage) },
     ],
+  },
+  {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/profile/profile.page').then((m) => m.ProfilePage),
   },
   {
     path: 'genealogy',

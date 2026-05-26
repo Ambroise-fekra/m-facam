@@ -28,7 +28,7 @@ import {
       </p>
       <ul class="t-muted">
         <li>L'essai gratuit dure <strong>30 jours</strong>.</li>
-        <li>L'abonnement est de <strong>10 €/an</strong>, payable par PayPal.</li>
+        <li>L'abonnement est de <strong>20 €/an</strong>, payable par PayPal.</li>
         <li>Sans paiement à la fin de l'essai (ou du renouvellement), la famille est <strong>désactivée pendant 1 mois</strong>, puis ses données sont <strong>définitivement supprimées</strong> si toujours impayée.</li>
         <li>L'administrateur de la famille est responsable de la gestion des membres et des versements.</li>
       </ul>

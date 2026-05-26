@@ -9,7 +9,7 @@ Application mobile de gestion d'une caisse de trésorerie familiale.
 
 ## Vue d'ensemble
 
-Chaque famille crée son espace via un abonnement annuel **10 €/an** (1 mois d'essai gratuit). Pendant l'essai, la base de données dédiée existe en mode probatoire ; si l'abonnement n'est pas confirmé à J+30, l'admin et la base sont supprimés automatiquement.
+Chaque famille crée son espace via un abonnement annuel **20 €/an** (1 mois d'essai gratuit). Pendant l'essai, la base de données dédiée existe en mode probatoire ; si l'abonnement n'est pas confirmé à J+30, l'admin et la base sont supprimés automatiquement.
 
 ### Fonctionnalités principales
 

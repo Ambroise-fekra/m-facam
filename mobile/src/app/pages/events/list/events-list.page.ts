@@ -78,7 +78,7 @@ import { FamilyEvent } from '../../../core/models/api.models';
       .ev-title { color: #fff; font-weight: 700; font-size: 1.05rem; }
       .ev-meta { color: #94a3b8; font-size: .85rem; margin: 6px 0 10px; }
       .ev-amounts { display: flex; justify-content: space-between; margin-top: 8px; color: #cbd5e1; font-size: .9rem; }
-      .ev-amounts .mine { color: var(--ion-color-primary); font-weight: 700; }
+      .ev-amounts .mine { color: var(--facam-accent); font-weight: 700; }
       .vote-line { color: #cbd5e1; font-size: .9rem; }
       .vote-line .myvote { color: #34d399; font-weight: 700; }
       .vote-line .tovote { color: #fbbf24; font-weight: 700; }

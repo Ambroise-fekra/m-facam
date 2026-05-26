@@ -74,7 +74,7 @@ export class FamiliesService {
       state: 'trial',
       trialStartedAt: new Date(),
       trialEndsAt,
-      priceEur: process.env.SUBSCRIPTION_PRICE_EUR ?? '10',
+      priceEur: process.env.SUBSCRIPTION_PRICE_EUR ?? '20',
     });
     await this.subRepo.save(subscription);
 

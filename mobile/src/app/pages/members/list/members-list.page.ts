@@ -62,9 +62,13 @@ import { Member } from '../../../core/models/api.models';
       <ion-button *ngIf="auth.isAdmin" routerLink="/members/add" expand="block" class="ion-margin-bottom">
         + Ajouter un membre
       </ion-button>
-      <ion-button routerLink="/genealogy" fill="outline" expand="block" class="ion-margin-bottom">
-        🌳 Voir l'arbre généalogique
+      <ion-button [routerLink]="['/members', 'edit', auth.snapshot?.member?.id]" fill="outline" expand="block" class="ion-margin-bottom">
+        ✏️ Mon profil
       </ion-button>
+      <div class="sub-actions">
+        <ion-button routerLink="/members/birthdays" fill="outline" size="small">🎂 Anniversaires</ion-button>
+        <ion-button routerLink="/genealogy" fill="outline" size="small">🌳 Arbre généalogique</ion-button>
+      </div>
 
       <div class="member" *ngFor="let m of members">
         <div class="avatar" [class.editable]="canEdit(m)" (click)="canEdit(m) && changePhoto(m)">
@@ -82,7 +86,10 @@ import { Member } from '../../../core/models/api.models';
           <div class="rel" *ngIf="m.fatherName || m.motherName">⬆️ Parents : {{ parents(m) }}</div>
           <div class="rel children" *ngIf="m.children?.length">⬇️ Enfants : {{ childrenNames(m) }}</div>
         </div>
-        <button *ngIf="m.phone" class="wa-mini" (click)="notify(m)" title="Prévenir par WhatsApp">💬</button>
+        <div class="row-actions">
+          <a *ngIf="canEdit(m)" class="edit-mini" [routerLink]="['/members', 'edit', m.id]" title="Modifier le profil">✏️</a>
+          <button *ngIf="m.phone" class="wa-mini" (click)="notify(m)" title="Prévenir par WhatsApp">💬</button>
+        </div>
       </div>
     </ion-content>
   `,
@@ -107,7 +114,11 @@ import { Member } from '../../../core/models/api.models';
       .rel { color: #94a3b8; font-size: .85rem; margin-top: 4px; }
       .rel.email { color: #cbd5e1; }
       .rel.children { color: #cbd5e1; }
-      .wa-mini { background: rgba(37,211,102,.18); border: 1px solid rgba(37,211,102,.4); color: #25D366; border-radius: 10px; width: 38px; height: 38px; font-size: 1.1rem; cursor: pointer; flex-shrink: 0; align-self: center; }
+      .sub-actions { display: flex; gap: 10px; margin-bottom: 16px; }
+      .sub-actions ion-button { flex: 1; --border-radius: 12px; }
+      .row-actions { display: flex; flex-direction: column; gap: 8px; align-self: center; flex-shrink: 0; }
+      .edit-mini { display: flex; align-items: center; justify-content: center; background: rgba(99,102,241,.18); border: 1px solid rgba(99,102,241,.4); border-radius: 10px; width: 38px; height: 38px; font-size: 1.05rem; cursor: pointer; text-decoration: none; }
+      .wa-mini { background: rgba(37,211,102,.18); border: 1px solid rgba(37,211,102,.4); color: #25D366; border-radius: 10px; width: 38px; height: 38px; font-size: 1.1rem; cursor: pointer; flex-shrink: 0; }
     `,
   ],
 })

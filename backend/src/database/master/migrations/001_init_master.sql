@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   trial_ends_at           timestamptz   NOT NULL,
   active_until            timestamptz,
   paypal_subscription_id  varchar(64),
-  price_eur               numeric(8, 2) NOT NULL DEFAULT 10,
+  price_eur               numeric(8, 2) NOT NULL DEFAULT 20,
   created_at              timestamptz   NOT NULL DEFAULT now(),
   updated_at              timestamptz   NOT NULL DEFAULT now()
 );

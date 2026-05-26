@@ -41,7 +41,7 @@ export class Subscription {
   @Column({ name: 'paypal_subscription_id', type: 'varchar', length: 64, nullable: true })
   paypalSubscriptionId: string | null;
 
-  @Column({ name: 'price_eur', type: 'numeric', precision: 8, scale: 2, default: 10 })
+  @Column({ name: 'price_eur', type: 'numeric', precision: 8, scale: 2, default: 20 })
   priceEur: string;
 
   @CreateDateColumn({ name: 'created_at' })

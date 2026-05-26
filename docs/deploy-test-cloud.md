@@ -53,7 +53,7 @@ npm run seed        # optionnel : famille démo
    JWT_EXPIRES_IN=1d
    PAYMENT_PROVIDER=mock
    EMAIL_PROVIDER=mock
-   SUBSCRIPTION_PRICE_EUR=10
+   SUBSCRIPTION_PRICE_EUR=20
    TRIAL_DAYS=30
    PUBLIC_API_URL=https://<ton-backend>.onrender.com
    APP_PUBLIC_URL=https://<ton-site-netlify>

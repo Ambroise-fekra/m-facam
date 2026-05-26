@@ -1,11 +1,12 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { TenantRoutingService } from '../../master/tenant/tenant-routing.service';
-import { Member } from './member.entity';
+import { Member, MemberGender } from './member.entity';
 import { CreateMemberDto } from './dto/create-member.dto';
+import { UpdateMemberDto } from './dto/update-member.dto';
 import { FamilyContext } from '../../common/decorators/family-context.decorator';
 import { Family } from '../../master/families/family.entity';
 
@@ -127,5 +128,70 @@ export class MembersService {
 
   async me(fam: FamilyContext) {
     return this.findOne(fam, fam.memberId);
+  }
+
+  /** Updates a member's profile. Allowed for the member themselves or an admin. */
+  async update(fam: FamilyContext, id: string, dto: UpdateMemberDto) {
+    if (id !== fam.memberId && !fam.isAdmin) {
+      throw new ForbiddenException('Vous ne pouvez modifier que votre propre profil');
+    }
+    const repo = await this.repo(fam.identifier);
+    const m = await repo.findOne({ where: { id } });
+    if (!m) throw new NotFoundException('Member not found');
+
+    if (dto.firstName !== undefined) m.firstName = dto.firstName;
+    if (dto.lastName !== undefined) m.lastName = dto.lastName;
+    if (dto.phone !== undefined) m.phone = dto.phone || null;
+    if (dto.gender !== undefined) m.gender = (dto.gender || null) as MemberGender | null;
+    if (dto.paypalEmail !== undefined) m.paypalEmail = dto.paypalEmail || null;
+    if (dto.birthDate !== undefined) m.birthDate = dto.birthDate ? new Date(dto.birthDate) : null;
+    if (dto.fatherId !== undefined) {
+      if (dto.fatherId === id) throw new BadRequestException('Un membre ne peut pas être son propre parent');
+      m.fatherId = dto.fatherId || null;
+    }
+    if (dto.motherId !== undefined) {
+      if (dto.motherId === id) throw new BadRequestException('Un membre ne peut pas être son propre parent');
+      m.motherId = dto.motherId || null;
+    }
+    await repo.save(m);
+    const all = await repo.find();
+    return this.enrich(m, all);
+  }
+
+  /**
+   * Members whose birthday falls in the current or next calendar month, sorted
+   * (this month first, then by day). Birthdays are shared within the family —
+   * no money information is exposed.
+   */
+  async birthdays(fam: FamilyContext) {
+    const repo = await this.repo(fam.identifier);
+    const members = await repo.find();
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const cur = now.getMonth() + 1;
+    const nxt = cur === 12 ? 1 : cur + 1;
+    return members
+      .filter((m) => !!m.birthDate)
+      .map((m) => {
+        const [by, bm, bd] = String(m.birthDate).substring(0, 10).split('-').map(Number);
+        return { m, by, bm, bd };
+      })
+      .filter((x) => x.bm === cur || x.bm === nxt)
+      .map(({ m, by, bm, bd }) => {
+        const isThisMonth = bm === cur;
+        const occYear = isThisMonth ? curYear : cur === 12 ? curYear + 1 : curYear;
+        return {
+          id: m.id,
+          firstName: m.firstName,
+          lastName: m.lastName,
+          photo: m.photo,
+          birthDate: String(m.birthDate).substring(0, 10),
+          day: bd,
+          month: bm,
+          turningAge: occYear - by,
+          isThisMonth,
+        };
+      })
+      .sort((a, b) => (a.isThisMonth === b.isThisMonth ? a.day - b.day : a.isThisMonth ? -1 : 1));
   }
 }

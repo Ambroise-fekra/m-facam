@@ -70,7 +70,7 @@ async function main() {
     const trialEnd = new Date(Date.now() + 30 * 86_400_000);
     await m.query(
       `INSERT INTO subscriptions (family_id, state, trial_started_at, trial_ends_at, price_eur)
-       VALUES ($1, 'trial', now(), $2, 10)`,
+       VALUES ($1, 'trial', now(), $2, 20)`,
       [familyId, trialEnd],
     );
 

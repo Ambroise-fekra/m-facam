@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://api.familycash.example/api',
+  apiBaseUrl: 'https://facam-api.onrender.com/api',
 };

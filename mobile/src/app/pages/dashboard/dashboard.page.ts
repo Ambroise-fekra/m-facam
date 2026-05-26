@@ -35,6 +35,7 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
         <ion-title>Family Cash</ion-title>
         <ion-buttons slot="end">
           <ion-button class="hdr-btn" (click)="router.navigateByUrl('/notifications')">🔔</ion-button>
+          <ion-button class="hdr-btn" (click)="router.navigateByUrl('/help')">Aide</ion-button>
           <ion-button class="hdr-btn logout-top" fill="solid" color="danger" (click)="logout()">Déconnexion</ion-button>
         </ion-buttons>
       </ion-toolbar>
@@ -124,7 +125,7 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
       .myshare.sub strong { font-size: .95rem; color: #cbd5e1; font-weight: 600; }
       .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0; }
       .action { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 14px 6px; text-align: center; color: #fff; cursor: pointer; }
-      .action ion-icon { font-size: 1.7rem; color: var(--ion-color-primary); }
+      .action ion-icon { font-size: 1.7rem; color: var(--facam-accent); }
       .action span { display: block; margin-top: 6px; font-size: .8rem; font-weight: 600; }
       .section-head { display: flex; justify-content: space-between; align-items: center; margin: 18px 0 10px; }
       .section-head h2 { color: #fff; font-size: 1.1rem; margin: 0; }
@@ -134,7 +135,7 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
       .ev-title { color: #fff; font-weight: 700; font-size: 1.05rem; }
       .ev-meta { color: #94a3b8; font-size: .85rem; margin: 6px 0 10px; }
       .ev-amounts { display: flex; justify-content: space-between; margin-top: 8px; color: #cbd5e1; font-size: .9rem; }
-      .ev-amounts .mine { color: var(--ion-color-primary); font-weight: 700; }
+      .ev-amounts .mine { color: var(--facam-accent); font-weight: 700; }
       .bar-label { color: #94a3b8; font-size: .75rem; margin: 8px 0 4px; }
       .vote-banner { background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.35); color: #fbbf24; border-radius: 14px; padding: 14px; text-align: center; font-weight: 600; margin-top: 8px; cursor: pointer; }
       .empty { text-align: center; padding: 24px; }

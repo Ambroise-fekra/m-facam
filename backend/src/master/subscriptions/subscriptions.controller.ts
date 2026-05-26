@@ -33,7 +33,7 @@ export class SubscriptionsController {
   @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Returns the approval link to upgrade the trial to a paid plan' })
   async upgrade(@CurrentFamily() fam: FamilyContext) {
-    const priceEur = Number(process.env.SUBSCRIPTION_PRICE_EUR ?? '10');
+    const priceEur = Number(process.env.SUBSCRIPTION_PRICE_EUR ?? '20');
     const checkout = await this.payments.createSubscriptionCheckout({
       identifier: fam.identifier,
       familyId: fam.familyId,

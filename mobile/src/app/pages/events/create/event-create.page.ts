@@ -107,7 +107,7 @@ import { Member } from '../../../core/models/api.models';
     `
       .info { background: rgba(245,158,11,.14); border: 1px solid rgba(245,158,11,.3); color: #fde68a; border-radius: 14px; padding: 14px; font-size: .9rem; line-height: 1.5; margin-bottom: 8px; }
       .info strong { color: #fff; }
-      .val { color: var(--ion-color-primary); font-weight: 800; }
+      .val { color: var(--facam-accent); font-weight: 800; }
       .rng { --bar-background: rgba(255,255,255,.15); --bar-background-active: var(--ion-color-primary); --knob-background: #fff; --pin-background: var(--ion-color-primary); --pin-color: #fff; padding: 0 6px; }
       .rng-end { color: #94a3b8; font-size: .75rem; }
     `,

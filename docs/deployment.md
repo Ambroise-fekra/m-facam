@@ -74,7 +74,7 @@ npm run migrate:template
 | `PAYPAL_MODE` | `live` |
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | App PayPal Live |
 | `PAYPAL_SUBSCRIPTION_PLAN_ID`, `PAYPAL_WEBHOOK_ID` | Voir [paypal.md](paypal.md) |
-| `SUBSCRIPTION_PRICE_EUR` | `10` |
+| `SUBSCRIPTION_PRICE_EUR` | `20` |
 | `TRIAL_DAYS` | `30` |
 | `FCM_PROJECT_ID`, `FCM_PRIVATE_KEY`, `FCM_CLIENT_EMAIL` | Firebase pour les push |
 

@@ -72,7 +72,7 @@ Pense aux icônes/splash (`@capacitor/assets`), au nom et à l'`appId` (déjà `
 
 Aujourd'hui `PAYMENT_PROVIDER=mock` : tout marche en simulation. Pour le réel :
 
-1. **Comptes & clés** (voir `paypal.md` §1-5) : créer une app PayPal (sandbox d'abord, puis live), récupérer `CLIENT_ID`/`SECRET`, créer le **plan d'abonnement** (Product + Plan 10 €/an → `PAYPAL_SUBSCRIPTION_PLAN_ID`), configurer le **webhook** (→ `PAYPAL_WEBHOOK_ID`).
+1. **Comptes & clés** (voir `paypal.md` §1-5) : créer une app PayPal (sandbox d'abord, puis live), récupérer `CLIENT_ID`/`SECRET`, créer le **plan d'abonnement** (Product + Plan 20 €/an → `PAYPAL_SUBSCRIPTION_PLAN_ID`), configurer le **webhook** (→ `PAYPAL_WEBHOOK_ID`).
 2. **Variables d'env backend** :
    ```dotenv
    PAYMENT_PROVIDER=paypal

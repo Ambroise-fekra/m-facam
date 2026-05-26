@@ -40,9 +40,10 @@ import { AuthService } from '../../../core/services/auth.service';
           <a routerLink="/auth/forgot-password">Mot de passe oublié&nbsp;?</a>
         </p>
         <p class="links">Pas encore de famille&nbsp;? <a routerLink="/auth/create-family">Créer une famille</a></p>
+        <p class="links"><a routerLink="/help">📖 Aide &amp; guide d'utilisation</a></p>
       </form>
 
-      <ion-text class="trial">🎁 1 mois gratuit, puis 10 €/an</ion-text>
+      <ion-text class="trial">🎁 1 mois gratuit, puis 20 €/an</ion-text>
     </ion-content>
   `,
   styles: [

@@ -42,7 +42,7 @@ export class EmailService {
         `Vérifiez votre adresse email en ouvrant ce lien :`,
         verifyUrl,
         ``,
-        `Rappel : l'essai gratuit dure 30 jours. Sans abonnement (10 €/an), la famille est désactivée 1 mois puis supprimée.`,
+        `Rappel : l'essai gratuit dure 30 jours. Sans abonnement (20 €/an), la famille est désactivée 1 mois puis supprimée.`,
       ].join('\n'),
     );
   }
@@ -51,7 +51,7 @@ export class EmailService {
     await this.send(
       to,
       `Votre essai se termine dans ${daysLeft} jour(s)`,
-      `Famille ${identifier} : il reste ${daysLeft} jour(s) d'essai. Activez l'abonnement (10 €/an) pour conserver vos données.`,
+      `Famille ${identifier} : il reste ${daysLeft} jour(s) d'essai. Activez l'abonnement (20 €/an) pour conserver vos données.`,
     );
   }
 
@@ -61,7 +61,7 @@ export class EmailService {
       `Famille désactivée — action requise`,
       [
         `La famille ${identifier} est désactivée faute de paiement.`,
-        `Vous avez jusqu'au ${graceEndsAt.toLocaleDateString('fr-FR')} pour régler l'abonnement (10 €/an) et tout réactiver.`,
+        `Vous avez jusqu'au ${graceEndsAt.toLocaleDateString('fr-FR')} pour régler l'abonnement (20 €/an) et tout réactiver.`,
         `Passé ce délai, la base de la famille sera définitivement supprimée.`,
         ``,
         `Important : votre compte PayPal familial vous appartient. Vous ne perdez pas l'argent de la caisse — vous pouvez continuer à gérer ce compte PayPal directement.`,

@@ -4,7 +4,7 @@ PayPal est utilisé pour trois flux :
 
 1. **Cotisations** des membres dans la caisse (Orders v2 + Capture)
 2. **Versements** au responsable d'un évènement à sa clôture (Payouts)
-3. **Abonnement** annuel 10 €/an de la famille (Subscriptions)
+3. **Abonnement** annuel 20 €/an de la famille (Subscriptions)
 
 Le code livré dans `backend/src/paypal/paypal.service.ts` est un **stub** — il retourne des URLs placeholder. Il faut le câbler avec un vrai compte PayPal Business.
 
@@ -36,7 +36,7 @@ PAYPAL_MODE=sandbox
 PAYPAL_CLIENT_ID=<Client ID>
 PAYPAL_CLIENT_SECRET=<Secret>
 PAYPAL_SUBSCRIPTION_EMAIL=facam-billing@paypal.example
-SUBSCRIPTION_PRICE_EUR=10
+SUBSCRIPTION_PRICE_EUR=20
 ```
 
 Redémarrer `npm run start:dev`.
@@ -62,7 +62,7 @@ curl -s -X POST https://api-m.sandbox.paypal.com/v1/catalogs/products \
     "category": "SOFTWARE"
   }'
 
-# Créer le plan annuel 10€
+# Créer le plan annuel 20€
 curl -s -X POST https://api-m.sandbox.paypal.com/v1/billing/plans \
   -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
   -d '{

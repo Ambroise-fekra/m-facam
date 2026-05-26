@@ -44,7 +44,7 @@ import { SubscriptionStatus } from '../../core/models/api.models';
         <h2 class="h-title">🎁 Essai gratuit en cours</h2>
         <p>Fin de l'essai : <strong>{{ status.trialEndsAt | date: 'longDate' }}</strong> ({{ daysLeft(status.trialEndsAt) }} j restants).</p>
         <p class="t-muted">Sans abonnement, la famille sera désactivée puis supprimée (voir ci-dessous).</p>
-        <ion-button expand="block" *ngIf="auth.isAdmin" (click)="upgrade()">Activer l'abonnement (10 €/an)</ion-button>
+        <ion-button expand="block" *ngIf="auth.isAdmin" (click)="upgrade()">Activer l'abonnement (20 €/an)</ion-button>
         <p class="t-muted small" *ngIf="!auth.isAdmin">Seul l'administrateur de la famille peut activer l'abonnement.</p>
       </div>
 
@@ -60,7 +60,7 @@ import { SubscriptionStatus } from '../../core/models/api.models';
         <h2 class="h-title">⚠️ Famille désactivée</h2>
         <p>Suppression définitive le <strong>{{ status.graceEndsAt | date: 'longDate' }}</strong>
           (dans {{ daysLeft(status.graceEndsAt) }} j) si l'abonnement n'est pas réglé.</p>
-        <ion-button expand="block" color="warning" *ngIf="auth.isAdmin" (click)="upgrade()">Réactiver maintenant (10 €/an)</ion-button>
+        <ion-button expand="block" color="warning" *ngIf="auth.isAdmin" (click)="upgrade()">Réactiver maintenant (20 €/an)</ion-button>
         <p class="t-muted small" *ngIf="!auth.isAdmin">Contactez l'administrateur de la famille pour réactiver l'abonnement.</p>
       </div>
 
@@ -69,7 +69,7 @@ import { SubscriptionStatus } from '../../core/models/api.models';
         <h3 class="h-title">Comment ça marche</h3>
         <ol>
           <li><strong>Essai</strong> : 30 jours gratuits.</li>
-          <li><strong>Paiement</strong> : 10 €/an via PayPal (compte dédié de la solution).</li>
+          <li><strong>Paiement</strong> : 20 €/an via PayPal (compte dédié de la solution).</li>
           <li><strong>Sans paiement</strong> : la famille est <strong>désactivée 1 mois</strong> (données conservées, connexion admin possible pour régulariser).</li>
           <li><strong>Toujours impayée après 1 mois</strong> : les données de la famille sont <strong>supprimées définitivement</strong>.</li>
         </ol>

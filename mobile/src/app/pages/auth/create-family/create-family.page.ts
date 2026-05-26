@@ -91,7 +91,7 @@ import { ApiService } from '../../../core/services/api.service';
       <ng-container *ngIf="step === 3">
         <div class="facam-card trial">
           <h3 class="h-title">🎁 1 mois gratuit</h3>
-          <p class="t-muted">Puis <strong style="color:#fff">10 €/an</strong>. Aucun paiement aujourd'hui.</p>
+          <p class="t-muted">Puis <strong style="color:#fff">20 €/an</strong>. Aucun paiement aujourd'hui.</p>
           <ul>
             <li>✅ Membres illimités</li>
             <li>✅ Cotisations PayPal</li>

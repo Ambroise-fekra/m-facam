@@ -31,6 +31,11 @@
   --facam-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   --facam-gradient-soft: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
   --facam-card-bg: rgba(255, 255, 255, 0.05);
+
+  /* Accent or/ambre — pour les montants et icônes (meilleur contraste que le mauve). */
+  --facam-accent: #fbbf24;
+  --facam-accent-strong: #f59e0b;
+  --facam-amount-gradient: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
 }
 
 @media (prefers-color-scheme: dark) {

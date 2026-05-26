@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  Birthday,
   CashSnapshot,
   FamilyEvent,
   Member,
@@ -66,6 +67,17 @@ interface MemberCreatePayload {
   motherId?: string;
   password?: string;
   canLogin?: boolean;
+}
+
+interface MemberUpdatePayload {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  birthDate?: string;
+  gender?: 'M' | 'F' | 'O';
+  paypalEmail?: string;
+  fatherId?: string;
+  motherId?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -159,6 +171,14 @@ export class ApiService {
 
   createMember(p: MemberCreatePayload) {
     return this.http.post<{ id: string; inviteToken: string | null }>(`${this.base}/members`, p);
+  }
+
+  updateMember(id: string, p: MemberUpdatePayload) {
+    return this.http.patch<Member>(`${this.base}/members/${id}`, p);
+  }
+
+  birthdays(): Observable<Birthday[]> {
+    return this.http.get<Birthday[]>(`${this.base}/members/birthdays`);
   }
 
   setMemberPhoto(id: string, photo: string) {
