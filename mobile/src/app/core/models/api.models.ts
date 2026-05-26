@@ -110,6 +110,8 @@ export interface Member {
   deceasedAt?: string | null;
   /** True if the member already has a password or a pending invite link. */
   canLogin?: boolean;
+  /** True only when the member has actually set a password (pre-requisite to be "actif"). */
+  hasPassword?: boolean;
   children?: MemberChild[];
 }
 

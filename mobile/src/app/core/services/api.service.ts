@@ -97,6 +97,8 @@ interface MemberUpdatePayload {
   motherId?: string;
   /** YYYY-MM-DD or '' to clear. Admin/chef only on backend. */
   deceasedAt?: string;
+  /** Admin/chef only. */
+  isActive?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })

@@ -380,13 +380,15 @@ export class EventsService {
     const yes = votes.filter((v) => v.value === 'yes').length;
     const no = votes.filter((v) => v.value === 'no').length;
     const voters = yes + no;
-    // Defensive: a deceased member is never an active member, even if some
-    // historical row had is_active=true. Quorum strictly counts members alive
-    // AND active.
+    // « Membre actif » au sens du quorum = a un mot de passe (peut réellement
+    // se connecter et voter) + flag isActive ON + ni décédé ni bloqué. Un
+    // membre uniquement déclaré pour la généalogie ne compte donc pas.
     let totalMembers = await ds
       .getRepository(Member)
       .createQueryBuilder('m')
-      .where('m.is_active = true AND m.deceased_at IS NULL')
+      .where(
+        'm.is_active = true AND m.deceased_at IS NULL AND m.is_blocked = false AND m.password_hash IS NOT NULL',
+      )
       .getCount();
     if (event?.type === 'loan' && event.borrowerId) totalMembers = Math.max(0, totalMembers - 1);
     const quorumNeeded = Math.ceil((totalMembers * 2) / 3);

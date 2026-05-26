@@ -34,9 +34,10 @@ export class MembersService {
     const mini = (m: Member | null) =>
       m ? { id: m.id, firstName: m.firstName, lastName: m.lastName, phone: m.phone } : null;
     const membersCount = all.length;
-    // Active = isActive && not deceased && not blocked (fully participating).
+    // « Actif » = a un compte (mot de passe défini) + flag isActive ON +
+    // ni décédé ni bloqué. C'est la définition utilisée aussi pour le quorum.
     const activeMembersCount = all.filter(
-      (m) => m.isActive && !m.deceasedAt && !m.isBlocked,
+      (m) => m.isActive && !m.deceasedAt && !m.isBlocked && !!m.passwordHash,
     ).length;
     return {
       name: family.name,
@@ -114,6 +115,8 @@ export class MembersService {
       // an outstanding invite link). Used by the UI to offer "Activer la
       // connexion" only when needed.
       canLogin: !!(m.passwordHash || m.inviteToken),
+      // True only when the member has actually set a password — pré-requis pour être considéré « actif ».
+      hasPassword: !!m.passwordHash,
       children,
     };
   }
@@ -141,7 +144,10 @@ export class MembersService {
       fatherId: dto.fatherId ?? null,
       motherId: dto.motherId ?? null,
       role: 'member',
-      isActive: true,
+      // "Actif" suit "peut se connecter" par défaut : un membre uniquement
+      // déclaré pour la généalogie est inactif tant que l'admin ne le passe
+      // pas actif (via la case dans son profil OU via "Activer la connexion").
+      isActive: dto.canLogin === true,
       passwordHash,
       inviteToken,
     });
@@ -286,6 +292,9 @@ export class MembersService {
     if (dto.deceasedAt !== undefined && !isAdminOrChief) {
       throw new ForbiddenException('Seul l\'administrateur ou le chef de famille peut enregistrer un décès');
     }
+    if (dto.isActive !== undefined && !isAdminOrChief) {
+      throw new ForbiddenException('Seul l\'administrateur ou le chef de famille peut changer le statut « actif »');
+    }
     const repo = await this.repo(fam.identifier);
     const m = await repo.findOne({ where: { id } });
     if (!m) throw new NotFoundException('Member not found');
@@ -315,6 +324,12 @@ export class MembersService {
         // Clearing the death date does NOT automatically re-activate — admin
         // may choose to re-activate via "Activer la connexion".
       }
+    }
+    if (dto.isActive !== undefined) {
+      if (dto.isActive && m.deceasedAt) {
+        throw new BadRequestException('Un membre décédé ne peut pas être actif');
+      }
+      m.isActive = dto.isActive;
     }
     await repo.save(m);
     const all = await repo.find();

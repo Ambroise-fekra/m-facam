@@ -92,8 +92,21 @@ import { Member } from '../../core/models/api.models';
           <ion-select-option *ngFor="let m of females" [value]="m.id">{{ m.firstName }} {{ m.lastName }}</ion-select-option>
         </ion-select>
 
-        <!-- Décès : visible/éditable uniquement par admin ou chef de famille -->
+        <!-- Statut "actif" + Décès : éditable uniquement par admin ou chef. -->
         <ng-container *ngIf="canMarkDeceased()">
+          <h3 class="h-title sec">⚙️ Statut</h3>
+          <div class="deceased-row">
+            <ion-checkbox
+              [checked]="!!form.value.isActive"
+              [disabled]="!!form.value.deceasedAt || !targetHasPassword()"
+              (ionChange)="onActiveToggle($event)"
+            ></ion-checkbox>
+            <span>Membre <strong>actif</strong> (peut voter, compté dans le quorum)</span>
+          </div>
+          <p class="t-muted small" *ngIf="!targetHasPassword()">
+            ⚠️ Ce membre n'a pas encore de mot de passe : il ne peut pas être actif. Cliquez d'abord sur « 🔓 Activer la connexion » dans la liste Famille pour lui envoyer le lien d'invitation.
+          </p>
+
           <h3 class="h-title sec">🕯️ Décès</h3>
           <div class="deceased-row">
             <ion-checkbox
@@ -198,7 +211,11 @@ export class ProfilePage implements OnInit {
     fatherId: [''],
     motherId: [''],
     deceasedAt: [''],
+    isActive: [false],
   });
+
+  /** True when the edited member already has a password (so they CAN be active). */
+  private memberHasPassword = false;
 
   /** Family info needed to detect "I am the chef de famille" for permission checks. */
   familyInfo: FamilyInfo | null = null;
@@ -268,6 +285,7 @@ export class ProfilePage implements OnInit {
       this.members = list;
       const m = list.find((x) => x.id === this.targetId);
       if (m) {
+        this.memberHasPassword = !!m.hasPassword;
         this.form.patchValue({
           firstName: m.firstName,
           lastName: m.lastName,
@@ -278,6 +296,7 @@ export class ProfilePage implements OnInit {
           fatherId: m.fatherId ?? '',
           motherId: m.motherId ?? '',
           deceasedAt: m.deceasedAt ?? '',
+          isActive: !!m.isActive,
         });
       }
     });
@@ -291,6 +310,15 @@ export class ProfilePage implements OnInit {
 
   isDeceasedChecked(): boolean {
     return !!this.form.value.deceasedAt;
+  }
+
+  targetHasPassword(): boolean {
+    return this.memberHasPassword;
+  }
+
+  onActiveToggle(e: Event) {
+    const checked = (e as CustomEvent).detail?.checked;
+    this.form.controls.isActive.setValue(!!checked);
   }
 
   onDeceasedToggle(e: Event) {
@@ -321,10 +349,11 @@ export class ProfilePage implements OnInit {
       fatherId: v.fatherId,
       motherId: v.motherId,
     };
-    // Only include deceasedAt when the caller has the right to set it,
-    // so the backend doesn't reject normal self-edits.
+    // Only include deceasedAt + isActive when the caller has the right to
+    // set them, so the backend doesn't reject normal self-edits.
     if (this.canMarkDeceased()) {
       payload['deceasedAt'] = v.deceasedAt;
+      payload['isActive'] = v.isActive;
     }
     this.api.updateMember(this.targetId, payload).subscribe({
       next: async () => {

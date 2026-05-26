@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, Length } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, Length } from 'class-validator';
 
 /**
  * Partial update of a member's own profile (or any member, if admin).
@@ -45,4 +45,9 @@ export class UpdateMemberDto {
   @IsOptional()
   @IsString()
   deceasedAt?: string;
+
+  /** Indicateur "membre actif" (peut voter, est compté dans le quorum). Réservé à l'admin/chef. */
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }
