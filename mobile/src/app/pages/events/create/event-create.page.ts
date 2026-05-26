@@ -57,7 +57,8 @@ import { Member } from '../../../core/models/api.models';
       </div>
 
       <form [formGroup]="form" (ngSubmit)="submit()">
-        <label class="fld-label">Type</label>
+        <p class="form-legend"><span class="star">*</span> Champ obligatoire</p>
+        <label class="fld-label req">Type</label>
         <ion-select class="fld" formControlName="type" interface="alert" placeholder="Choisir">
           <ion-select-option value="wedding">💍 Mariage</ion-select-option>
           <ion-select-option value="death">🕯️ Décès</ion-select-option>
@@ -66,7 +67,7 @@ import { Member } from '../../../core/models/api.models';
           <ion-select-option value="other">📌 Autre</ion-select-option>
         </ion-select>
 
-        <label class="fld-label">Titre</label>
+        <label class="fld-label req">Titre</label>
         <ion-input class="fld" formControlName="title" placeholder="Ex : Mariage de Sophie"></ion-input>
 
         <label class="fld-label">Description</label>
@@ -89,10 +90,10 @@ import { Member } from '../../../core/models/api.models';
         <label class="fld-label">🎉 Date de l'évènement (optionnel)</label>
         <ion-input class="fld" type="date" formControlName="eventDate"></ion-input>
 
-        <label class="fld-label">🗳️ Fin du vote (décision)</label>
+        <label class="fld-label req">🗳️ Fin du vote (décision)</label>
         <ion-input class="fld" type="date" formControlName="decisionDeadline"></ion-input>
 
-        <label class="fld-label">👤 Responsable (reçoit les fonds)</label>
+        <label class="fld-label req">👤 Responsable (reçoit les fonds)</label>
         <ion-select class="fld" formControlName="responsibleId" interface="alert" placeholder="Choisir un membre">
           <ion-select-option *ngFor="let m of members" [value]="m.id">{{ m.firstName }} {{ m.lastName }}</ion-select-option>
         </ion-select>

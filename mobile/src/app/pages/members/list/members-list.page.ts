@@ -82,7 +82,7 @@ import { Member } from '../../../core/models/api.models';
             <span *ngIf="m.role === 'admin'" class="badge badge-proposed">👑 Admin</span>
             <span *ngIf="m.id === auth.snapshot?.member?.id" class="badge badge-active">Vous</span>
           </div>
-          <div class="rel email" *ngIf="auth.isAdmin">✉️ {{ m.email }}</div>
+          <div class="rel email" *ngIf="auth.isAdmin && m.email">✉️ {{ m.email }}</div>
           <div class="rel" *ngIf="m.fatherName || m.motherName">⬆️ Parents : {{ parents(m) }}</div>
           <div class="rel children" *ngIf="m.children?.length">⬇️ Enfants : {{ childrenNames(m) }}</div>
         </div>

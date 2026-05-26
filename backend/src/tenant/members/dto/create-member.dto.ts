@@ -19,8 +19,12 @@ export class CreateMemberDto {
   @Length(2, 80)
   lastName: string;
 
+  // Optional: a member who can't log in (e.g. a deceased relative for the
+  // genealogy tree) may have no email. Required only when canLogin is true
+  // (enforced in the service).
+  @IsOptional()
   @IsEmail()
-  email: string;
+  email?: string;
 
   @IsOptional()
   @IsString()

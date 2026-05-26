@@ -50,17 +50,21 @@ import { Member } from '../../../core/models/api.models';
 
     <ion-content class="facam-bg ion-padding">
       <form *ngIf="!created" [formGroup]="form" (ngSubmit)="submit()">
-        <label class="fld-label">Prénom</label>
+        <p class="form-legend"><span class="star">*</span> Champ obligatoire</p>
+
+        <label class="fld-label req">Prénom</label>
         <ion-input class="fld" formControlName="firstName" placeholder="Sophie"></ion-input>
 
-        <label class="fld-label">Nom</label>
+        <label class="fld-label req">Nom</label>
         <ion-input class="fld" formControlName="lastName" placeholder="DUPONT"></ion-input>
 
-        <label class="fld-label">Email</label>
+        <label class="fld-label" [class.req]="form.value.canLogin">Email</label>
         <ion-input class="fld" type="email" formControlName="email" placeholder="sophie@email.com"></ion-input>
 
         <label class="fld-label">Téléphone</label>
         <ion-input class="fld" type="tel" formControlName="phone" placeholder="+33 6 …"></ion-input>
+
+        <p class="hint" *ngIf="!form.value.canLogin">🌳 Proche <strong>décédé</strong> (arbre généalogique) qui ne se connectera jamais : laissez « peut se connecter » désactivé — <strong>email et téléphone facultatifs</strong>. Le prénom et le nom suffisent.</p>
 
         <label class="fld-label">Date de naissance</label>
         <ion-input class="fld" type="date" formControlName="birthDate"></ion-input>
@@ -153,7 +157,7 @@ export class MemberAddPage implements OnInit {
   readonly form = this.fb.nonNullable.group({
     firstName: ['', Validators.required],
     lastName: ['', Validators.required],
-    email: ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.email]], // required only when canLogin (see ngOnInit)
     phone: [''],
     birthDate: [''],
     gender: [''],
@@ -173,6 +177,12 @@ export class MemberAddPage implements OnInit {
 
   ngOnInit() {
     this.api.members().subscribe((m) => (this.members = m));
+    // Email is required only for members who can log in.
+    this.form.controls.canLogin.valueChanges.subscribe((can) => {
+      const email = this.form.controls.email;
+      email.setValidators(can ? [Validators.required, Validators.email] : [Validators.email]);
+      email.updateValueAndValidity();
+    });
   }
 
   async submit() {
@@ -186,7 +196,7 @@ export class MemberAddPage implements OnInit {
       .createMember({
         firstName: v.firstName,
         lastName: v.lastName,
-        email: v.email,
+        email: v.email || undefined,
         phone: v.phone || undefined,
         birthDate: v.birthDate || undefined,
         gender: (v.gender as 'M' | 'F' | 'O') || undefined,

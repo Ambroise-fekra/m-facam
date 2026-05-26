@@ -23,9 +23,11 @@ export class Member {
   @Column({ name: 'last_name', length: 80 })
   lastName: string;
 
+  // Nullable: deceased relatives added only for the genealogy tree have no email.
+  // PostgreSQL allows multiple NULLs under the UNIQUE index.
   @Index({ unique: true })
-  @Column({ length: 160 })
-  email: string;
+  @Column({ type: 'varchar', length: 160, nullable: true })
+  email: string | null;
 
   @Column({ type: 'varchar', length: 32, nullable: true })
   phone: string | null;

@@ -52,10 +52,12 @@ import { Member } from '../../core/models/api.models';
       </p>
 
       <form [formGroup]="form" (ngSubmit)="submit()">
-        <label class="fld-label">Prénom</label>
+        <p class="form-legend"><span class="star">*</span> Champ obligatoire</p>
+
+        <label class="fld-label req">Prénom</label>
         <ion-input class="fld" formControlName="firstName" placeholder="Jean"></ion-input>
 
-        <label class="fld-label">Nom</label>
+        <label class="fld-label req">Nom</label>
         <ion-input class="fld" formControlName="lastName" placeholder="DUPONT"></ion-input>
 
         <label class="fld-label">Téléphone</label>

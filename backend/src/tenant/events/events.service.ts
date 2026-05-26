@@ -311,8 +311,15 @@ export class EventsService {
         this.logger.warn(`Event ${event.id}: responsible missing, skipping`);
         continue;
       }
+      const receiverEmail = responsible.paypalEmail ?? responsible.email;
+      if (!receiverEmail) {
+        // Responsible has no payout target (e.g. created without email). Skip the
+        // auto-payout so funds aren't lost; an admin can settle it manually.
+        this.logger.warn(`Event ${event.id}: responsible has no email/PayPal, skipping auto-payout`);
+        continue;
+      }
       const payoutTx = await this.payments.payout({
-        receiverEmail: responsible.paypalEmail ?? responsible.email,
+        receiverEmail,
         amountEur: Number(total),
         note: `FACAM event "${event.title}"`,
       });
@@ -320,7 +327,7 @@ export class EventsService {
       event.closedAt = new Date();
       event.payoutPaypalTx = payoutTx;
       await repo.save(event);
-      this.logger.log(`Event ${event.id} closed and ${total}€ paid to ${responsible.email}`);
+      this.logger.log(`Event ${event.id} closed and ${total}€ paid to ${receiverEmail}`);
     }
   }
 }

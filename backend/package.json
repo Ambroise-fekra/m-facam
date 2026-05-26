@@ -15,6 +15,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migrate:master": "ts-node -r tsconfig-paths/register ./src/database/run-migrations.ts master",
     "migrate:template": "ts-node -r tsconfig-paths/register ./src/database/run-migrations.ts template",
+    "migrate:tenants": "ts-node -r tsconfig-paths/register ./src/database/run-migrations.ts tenants-all",
     "seed": "ts-node -r tsconfig-paths/register ./src/database/seed.ts"
   },
   "dependencies": {

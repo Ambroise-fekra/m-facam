@@ -46,6 +46,23 @@ ion-select.fld.ion-focused,
 ion-textarea.fld.ion-focused {
   border-color: var(--ion-color-primary);
 }
+/* Required-field marker: add class "req" on a .fld-label to show a red asterisk. */
+.fld-label.req::after {
+  content: ' *';
+  color: #f87171;
+  font-weight: 700;
+}
+/* Small "* required" legend at the top of forms. */
+.form-legend {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  margin: 0 0 6px;
+}
+.form-legend .star {
+  color: #f87171;
+  font-weight: 700;
+}
+
 /* Light variant (forms on white background, e.g. inscription consulaire-like) */
 ion-input.fld-light,
 ion-select.fld-light,

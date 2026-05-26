@@ -92,15 +92,20 @@ export class MembersService {
 
   async create(fam: FamilyContext, dto: CreateMemberDto): Promise<{ id: string; inviteToken: string | null }> {
     const repo = await this.repo(fam.identifier);
+    // A member who can log in must have an email (used to sign in / invite).
+    if (dto.canLogin && !dto.email) {
+      throw new BadRequestException('Un membre qui peut se connecter doit avoir un email.');
+    }
     // If the member may log in but no password is set by the admin, generate an
     // invite token so they can choose their own password via an invite link.
     const passwordHash = dto.canLogin && dto.password ? await bcrypt.hash(dto.password, 10) : null;
     const inviteToken = dto.canLogin && !dto.password ? randomUUID() : null;
+    const email = dto.email ? dto.email.toLowerCase() : null;
 
     const member = repo.create({
       firstName: dto.firstName,
       lastName: dto.lastName,
-      email: dto.email.toLowerCase(),
+      email,
       phone: dto.phone ?? null,
       birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
       gender: dto.gender ?? null,
@@ -115,13 +120,15 @@ export class MembersService {
     const saved = await repo.save(member);
 
     // Keep the master directory in sync so this member can recover the family
-    // identifier by email later.
-    const family = await this.familyRepo.findOne({ where: { id: fam.familyId } });
-    if (family) {
-      await this.familyRepo.manager.query(
-        `INSERT INTO member_directory (email, family_id, family_identifier) VALUES ($1, $2, $3)`,
-        [saved.email, family.id, family.identifier],
-      );
+    // identifier by email later (only meaningful for members with an email).
+    if (email) {
+      const family = await this.familyRepo.findOne({ where: { id: fam.familyId } });
+      if (family) {
+        await this.familyRepo.manager.query(
+          `INSERT INTO member_directory (email, family_id, family_identifier) VALUES ($1, $2, $3)`,
+          [email, family.id, family.identifier],
+        );
+      }
     }
     return { id: saved.id, inviteToken };
   }

@@ -58,7 +58,7 @@ interface EventCreatePayload {
 interface MemberCreatePayload {
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string;
   phone?: string;
   birthDate?: string;
   gender?: 'M' | 'F' | 'O';

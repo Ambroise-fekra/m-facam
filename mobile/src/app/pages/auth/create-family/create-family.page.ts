@@ -52,10 +52,11 @@ import { ApiService } from '../../../core/services/api.service';
 
       <ng-container *ngIf="step === 1">
         <form [formGroup]="formFamily" (ngSubmit)="next()">
-          <label class="fld-label">Nom de la famille</label>
+          <p class="form-legend"><span class="star">*</span> Champ obligatoire</p>
+          <label class="fld-label req">Nom de la famille</label>
           <ion-input class="fld" formControlName="name" placeholder="DUPONT"></ion-input>
 
-          <label class="fld-label">Code famille (3 à 10 caractères)</label>
+          <label class="fld-label req">Code famille (3 à 10 caractères)</label>
           <ion-input class="fld" formControlName="code" maxlength="10" placeholder="DUPONT" autocapitalize="characters"></ion-input>
           <p class="hint">Lettres/chiffres uniquement. L'identifiant complet sera généré automatiquement au format <strong>FAM-CODE-0001</strong> et garanti unique.</p>
 
@@ -71,13 +72,14 @@ import { ApiService } from '../../../core/services/api.service';
 
       <ng-container *ngIf="step === 2">
         <form [formGroup]="formAdmin" (ngSubmit)="next()">
-          <label class="fld-label">Prénom</label>
+          <p class="form-legend"><span class="star">*</span> Champ obligatoire</p>
+          <label class="fld-label req">Prénom</label>
           <ion-input class="fld" formControlName="adminFirstName" placeholder="Jean"></ion-input>
-          <label class="fld-label">Nom</label>
+          <label class="fld-label req">Nom</label>
           <ion-input class="fld" formControlName="adminLastName" placeholder="DUPONT"></ion-input>
-          <label class="fld-label">Email (servira à recevoir votre identifiant)</label>
+          <label class="fld-label req">Email (servira à recevoir votre identifiant)</label>
           <ion-input class="fld" type="email" formControlName="adminEmail" placeholder="jean@email.com"></ion-input>
-          <label class="fld-label">Mot de passe</label>
+          <label class="fld-label req">Mot de passe</label>
           <div class="pwd-wrap">
             <ion-input class="fld" [type]="showPwd ? 'text' : 'password'" formControlName="adminPassword" placeholder="min. 8 caractères"></ion-input>
             <button type="button" class="eye" (click)="showPwd = !showPwd">{{ showPwd ? '🙈' : '👁️' }}</button>
