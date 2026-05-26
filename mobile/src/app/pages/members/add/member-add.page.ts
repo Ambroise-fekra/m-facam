@@ -66,7 +66,7 @@ import { Member } from '../../../core/models/api.models';
         <ion-input class="fld" type="date" formControlName="birthDate"></ion-input>
 
         <label class="fld-label">Sexe</label>
-        <ion-select class="fld" formControlName="gender" interface="action-sheet" placeholder="Choisir">
+        <ion-select class="fld" formControlName="gender" interface="alert" placeholder="Choisir">
           <ion-select-option value="M">Masculin</ion-select-option>
           <ion-select-option value="F">Féminin</ion-select-option>
           <ion-select-option value="O">Autre</ion-select-option>
@@ -77,13 +77,13 @@ import { Member } from '../../../core/models/api.models';
 
         <h3 class="h-title sec">Filiation</h3>
         <label class="fld-label">Père</label>
-        <ion-select class="fld" formControlName="fatherId" interface="action-sheet" placeholder="— Aucun —">
+        <ion-select class="fld" formControlName="fatherId" interface="alert" placeholder="— Aucun —">
           <ion-select-option [value]="''">— Aucun —</ion-select-option>
           <ion-select-option *ngFor="let m of males" [value]="m.id">{{ m.firstName }} {{ m.lastName }}</ion-select-option>
         </ion-select>
 
         <label class="fld-label">Mère</label>
-        <ion-select class="fld" formControlName="motherId" interface="action-sheet" placeholder="— Aucune —">
+        <ion-select class="fld" formControlName="motherId" interface="alert" placeholder="— Aucune —">
           <ion-select-option [value]="''">— Aucune —</ion-select-option>
           <ion-select-option *ngFor="let m of females" [value]="m.id">{{ m.firstName }} {{ m.lastName }}</ion-select-option>
         </ion-select>

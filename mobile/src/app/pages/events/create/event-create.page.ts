@@ -58,7 +58,7 @@ import { Member } from '../../../core/models/api.models';
 
       <form [formGroup]="form" (ngSubmit)="submit()">
         <label class="fld-label">Type</label>
-        <ion-select class="fld" formControlName="type" interface="action-sheet" placeholder="Choisir">
+        <ion-select class="fld" formControlName="type" interface="alert" placeholder="Choisir">
           <ion-select-option value="wedding">💍 Mariage</ion-select-option>
           <ion-select-option value="death">🕯️ Décès</ion-select-option>
           <ion-select-option value="project">🏗️ Projet</ion-select-option>
@@ -93,7 +93,7 @@ import { Member } from '../../../core/models/api.models';
         <ion-input class="fld" type="date" formControlName="decisionDeadline"></ion-input>
 
         <label class="fld-label">👤 Responsable (reçoit les fonds)</label>
-        <ion-select class="fld" formControlName="responsibleId" interface="action-sheet" placeholder="Choisir un membre">
+        <ion-select class="fld" formControlName="responsibleId" interface="alert" placeholder="Choisir un membre">
           <ion-select-option *ngFor="let m of members" [value]="m.id">{{ m.firstName }} {{ m.lastName }}</ion-select-option>
         </ion-select>
 

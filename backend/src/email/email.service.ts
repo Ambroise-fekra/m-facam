@@ -1,14 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 
 /**
  * Email sender abstraction. Default mode "mock" just logs the message (and the
  * content is also surfaced in-app where relevant), so the product works without
- * any SMTP account. Switch EMAIL_PROVIDER=smtp and wire nodemailer to send for
- * real — no caller changes needed.
+ * any SMTP account. Set EMAIL_PROVIDER=smtp + the SMTP_* env vars to send for
+ * real via nodemailer — no caller changes needed.
+ *
+ * SMTP env vars (e.g. Infomaniak): SMTP_HOST=mail.infomaniak.com, SMTP_PORT=587,
+ * SMTP_USER=<adresse complète>, SMTP_PASS=<mot de passe>, SMTP_FROM=<expéditeur>,
+ * SMTP_SECURE=false (true seulement pour le port 465).
  */
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
+  private transporter: Transporter | null = null;
 
   private get mode(): 'mock' | 'smtp' {
     return (process.env.EMAIL_PROVIDER as 'mock' | 'smtp') ?? 'mock';
@@ -18,12 +25,35 @@ export class EmailService {
     return process.env.APP_PUBLIC_URL ?? 'http://localhost:4200';
   }
 
+  /** Lazily builds (and caches) the nodemailer transport from SMTP_* env vars. */
+  private getTransporter(): Transporter {
+    if (!this.transporter) {
+      const port = Number(process.env.SMTP_PORT ?? '587');
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port,
+        // 465 = SSL implicite ; 587 = STARTTLS.
+        secure: process.env.SMTP_SECURE === 'true' || port === 465,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      });
+    }
+    return this.transporter;
+  }
+
   async send(to: string, subject: string, body: string): Promise<void> {
     if (this.mode === 'smtp') {
-      // TODO: nodemailer transport from SMTP_* env vars.
-      this.logger.warn('EMAIL_PROVIDER=smtp not yet wired — falling back to log');
+      try {
+        const from = process.env.SMTP_FROM ?? process.env.SMTP_USER ?? 'no-reply@familycash.app';
+        await this.getTransporter().sendMail({ from, to, subject, text: body });
+        this.logger.log(`Email envoyé à ${to} — "${subject}"`);
+        return;
+      } catch (e) {
+        // Best-effort : on n'interrompt jamais le flux métier (la création de
+        // famille affiche aussi l'identifiant à l'écran). On journalise le contenu.
+        this.logger.error(`Échec envoi SMTP à ${to}: ${(e as Error).message}`);
+      }
     }
-    this.logger.log(`\n──────── EMAIL (mock) ────────\nTo: ${to}\nSubject: ${subject}\n${body}\n──────────────────────────────`);
+    this.logger.log(`\n──────── EMAIL (${this.mode}) ────────\nTo: ${to}\nSubject: ${subject}\n${body}\n──────────────────────────────`);
   }
 
   async sendFamilyCreated(to: string, familyName: string, identifier: string, verifyToken: string): Promise<void> {
