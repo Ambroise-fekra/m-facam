@@ -192,6 +192,11 @@ export class ApiService {
     return this.http.post<{ id: string; isBlocked: boolean }>(`${this.base}/members/${id}/unblock`, {});
   }
 
+  /** Admin / chef de famille: enable login for a member by generating an invite link. */
+  enableMemberLogin(id: string) {
+    return this.http.post<{ id: string; inviteToken: string }>(`${this.base}/members/${id}/enable-login`, {});
+  }
+
   allocate(p: AllocationPayload) {
     return this.http.post<{ id: string; amount: string }>(`${this.base}/allocations`, p);
   }

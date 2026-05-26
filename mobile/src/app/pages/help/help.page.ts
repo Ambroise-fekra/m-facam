@@ -22,7 +22,7 @@ import {
 
     <ion-content class="facam-bg ion-padding">
       <h1 class="g-h1">Guide d'utilisation</h1>
-      <p class="t-muted intro">Family Cash Management — gérez ensemble la caisse de votre famille : cotisations, évènements et solidarité, en toute confidentialité.</p>
+      <p class="t-muted intro">Family Cash Management — gérez ensemble la caisse de votre famille : cotisations, évènements et solidarité, <strong>en toute confidentialité et transparence</strong>. L'application combine les deux : chacun voit la caisse globale, les évènements et le décompte des votes, mais <strong>seules les informations financières personnelles</strong> (sa part, ses cotisations, ses allocations) sont privées.</p>
 
       <h2 class="g-h2">👑 La famille & l'administrateur</h2>
       <ul>

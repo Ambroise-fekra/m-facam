@@ -97,6 +97,8 @@ export interface Member {
   motherName?: string | null;
   photo?: string | null;
   isBlocked?: boolean;
+  /** True if the member already has a password or a pending invite link. */
+  canLogin?: boolean;
   children?: MemberChild[];
 }
 

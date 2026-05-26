@@ -62,6 +62,12 @@ export class MembersController {
     return this.members.setPhoto(fam, id, body.photo ?? '');
   }
 
+  @Post(':id/enable-login')
+  @ApiOperation({ summary: 'Activer la connexion d\'un membre (admin ou chef de famille)' })
+  enableLogin(@CurrentFamily() fam: FamilyContext, @Param('id') id: string) {
+    return this.members.enableLogin(fam, id);
+  }
+
   @Post(':id/block')
   @ApiOperation({ summary: 'Bloquer un membre (admin) — empêche votes/évènements/prêts' })
   block(@CurrentFamily() fam: FamilyContext, @Param('id') id: string) {

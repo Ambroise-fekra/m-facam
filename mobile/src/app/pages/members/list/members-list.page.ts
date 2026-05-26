@@ -98,6 +98,10 @@ import { Member } from '../../../core/models/api.models';
           <div class="rel blocked-note" *ngIf="m.isBlocked && auth.isAdmin">
             Prêt impayé à l'échéance. <a (click)="unblock(m)">Débloquer →</a>
           </div>
+          <div class="rel nologin" *ngIf="!m.canLogin && canManageLogin() && m.id !== auth.snapshot?.member?.id">
+            🔒 Ne peut pas se connecter.
+            <a (click)="enableLogin(m)">Activer la connexion →</a>
+          </div>
           <div class="rel email" *ngIf="auth.isAdmin && m.email">✉️ {{ m.email }}</div>
           <div class="rel" *ngIf="m.fatherName || m.motherName">⬆️ Parents : {{ parents(m) }}</div>
           <div class="rel children" *ngIf="m.children?.length">⬇️ Enfants : {{ childrenNames(m) }}</div>
@@ -136,6 +140,8 @@ import { Member } from '../../../core/models/api.models';
       .rel.children { color: #cbd5e1; }
       .rel.blocked-note { color: #fca5a5; }
       .rel.blocked-note a { color: #a5b4fc; cursor: pointer; text-decoration: underline; }
+      .rel.nologin { color: #cbd5e1; }
+      .rel.nologin a { color: #a5b4fc; cursor: pointer; text-decoration: underline; }
       .sub-actions { display: flex; gap: 10px; margin-bottom: 16px; }
       .sub-actions ion-button { flex: 1; --border-radius: 12px; }
       .row-actions { display: flex; flex-direction: column; gap: 8px; align-self: center; flex-shrink: 0; }
@@ -232,6 +238,50 @@ export class MembersListPage implements OnInit {
       });
       await t.present();
       this.reload();
+    });
+  }
+
+  /** Admin OR chef de famille can enable login for a member. */
+  canManageLogin(): boolean {
+    const meId = this.auth.snapshot?.member?.id;
+    return this.auth.isAdmin || (!!meId && meId === this.info?.chief?.id);
+  }
+
+  async enableLogin(m: Member) {
+    this.api.enableMemberLogin(m.id).subscribe({
+      next: async (res) => {
+        const identifier = this.auth.snapshot?.family.identifier ?? '';
+        const link = `${window.location.origin}/auth/accept-invite?identifier=${encodeURIComponent(identifier)}&token=${res.inviteToken}`;
+        const famName = this.info?.name ?? 'notre famille';
+        const alert = await this.alertCtrl.create({
+          header: '🔓 Connexion activée',
+          message:
+            `Un lien d'invitation a été créé pour <strong>${m.firstName} ${m.lastName}</strong>. ` +
+            `Partagez-le : à l'ouverture, il/elle définira son mot de passe et pourra se connecter.`,
+          buttons: [
+            {
+              text: '📋 Copier le lien',
+              handler: () => {
+                navigator.clipboard.writeText(link).then(async () => {
+                  const t = await this.toastCtrl.create({ message: 'Lien copié', color: 'success', duration: 1500 });
+                  await t.present();
+                });
+              },
+            },
+            {
+              text: '💬 WhatsApp',
+              handler: () => {
+                const msg = `Bonjour ${m.firstName}, tu es invité(e) à rejoindre ${famName} sur Family Cash Management. ` +
+                  `Ouvre ce lien pour définir ton mot de passe : ${link}`;
+                this.whatsapp.share(msg, m.phone);
+              },
+            },
+            { text: 'Fermer', role: 'cancel' },
+          ],
+        });
+        await alert.present();
+        this.reload();
+      },
     });
   }
 

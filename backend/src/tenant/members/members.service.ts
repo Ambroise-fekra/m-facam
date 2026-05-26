@@ -99,6 +99,10 @@ export class MembersService {
       motherName: nameOf(m.motherId),
       photo: m.photo,
       isBlocked: m.isBlocked,
+      // True if this member has any way to log in (already has a password OR
+      // an outstanding invite link). Used by the UI to offer "Activer la
+      // connexion" only when needed.
+      canLogin: !!(m.passwordHash || m.inviteToken),
       children,
     };
   }
@@ -148,6 +152,42 @@ export class MembersService {
 
   async me(fam: FamilyContext) {
     return this.findOne(fam, fam.memberId);
+  }
+
+  /** True if the caller is the admin OR the designated chef de famille. */
+  private async isAdminOrChief(fam: FamilyContext): Promise<boolean> {
+    if (fam.isAdmin) return true;
+    const family = await this.familyRepo.findOne({ where: { id: fam.familyId } });
+    return !!family && family.chiefMemberId === fam.memberId;
+  }
+
+  /**
+   * Enables login for a member who was created without an access (typically
+   * a child or an ancestor added to the genealogy). Generates an invite token
+   * if none exists; the member opens the link, picks a password and joins.
+   * Reserved to the admin or the chef de famille.
+   */
+  async enableLogin(fam: FamilyContext, id: string): Promise<{ id: string; inviteToken: string }> {
+    if (!(await this.isAdminOrChief(fam))) {
+      throw new ForbiddenException('Réservé à l\'administrateur ou au chef de famille');
+    }
+    const repo = await this.repo(fam.identifier);
+    const m = await repo.findOne({ where: { id } });
+    if (!m) throw new NotFoundException('Member not found');
+    if (!m.isActive) throw new BadRequestException('Membre inactif');
+    if (!m.email) {
+      throw new BadRequestException(
+        'Ajoutez d\'abord un email à ce membre (via « Modifier le profil ») avant d\'activer la connexion.',
+      );
+    }
+    if (m.passwordHash) {
+      throw new BadRequestException('Ce membre peut déjà se connecter (un mot de passe est défini).');
+    }
+    if (!m.inviteToken) {
+      m.inviteToken = randomUUID();
+      await repo.save(m);
+    }
+    return { id: m.id, inviteToken: m.inviteToken };
   }
 
   /** Admin only: toggle the is_blocked flag (e.g. after a loan is settled). */
