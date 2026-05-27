@@ -20,7 +20,16 @@ export class MockPaymentService implements PaymentProvider {
   private readonly logger = new Logger(MockPaymentService.name);
 
   private base(): string {
-    return process.env.PUBLIC_API_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+    // Priorité : PUBLIC_API_URL (custom domain Infomaniak en prod), puis
+    // RENDER_EXTERNAL_URL (Render l'injecte automatiquement : ex.
+    // https://facam-api.onrender.com), puis fallback dev local. Sans ça, en
+    // prod l'URL de checkout simulé pointait sur localhost:3000 et la fenêtre
+    // PayPal-fake plantait pour l'utilisateur (ne peut pas se résoudre).
+    return (
+      process.env.PUBLIC_API_URL ??
+      process.env.RENDER_EXTERNAL_URL ??
+      `http://localhost:${process.env.PORT ?? 3000}`
+    );
   }
 
   async createContributionCheckout(a: ContributionCheckoutArgs): Promise<CheckoutResult> {
