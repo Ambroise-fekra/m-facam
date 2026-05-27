@@ -243,19 +243,23 @@ export class MembersService {
     if (!m.inviteToken) { m.inviteToken = randomUUID(); changed = true; }
     if (changed) await repo.save(m);
 
-    // If they're added to the master directory and didn't have an entry yet
-    // (e.g. created inactive without email then email added), sync it now.
-    const family = await this.familyRepo.findOne({ where: { id: fam.familyId } });
-    if (family) {
-      const exists = await this.familyRepo.manager.query(
-        `SELECT 1 FROM member_directory WHERE email = $1 AND family_id = $2`,
-        [m.email, family.id],
-      );
-      if (!exists.length) {
-        await this.familyRepo.manager.query(
-          `INSERT INTO member_directory (email, family_id, family_identifier) VALUES ($1, $2, $3)`,
-          [m.email, family.id, family.identifier],
+    // If the member has an email, sync the master directory (used to recover
+    // the family identifier by email). Phone-only invites skip this step ;
+    // ils renseigneront l'email sur la page accept-invite, qui synchronise
+    // alors le directory.
+    if (m.email) {
+      const family = await this.familyRepo.findOne({ where: { id: fam.familyId } });
+      if (family) {
+        const exists = await this.familyRepo.manager.query(
+          `SELECT 1 FROM member_directory WHERE lower(email) = lower($1) AND family_id = $2`,
+          [m.email, family.id],
         );
+        if (!exists.length) {
+          await this.familyRepo.manager.query(
+            `INSERT INTO member_directory (email, family_id, family_identifier) VALUES ($1, $2, $3)`,
+            [m.email, family.id, family.identifier],
+          );
+        }
       }
     }
     return { id: m.id, inviteToken: m.inviteToken! };
