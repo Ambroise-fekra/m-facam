@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   IonBackButton,
   IonButton,
@@ -86,12 +86,12 @@ import { Member } from '../../../core/models/api.models';
       </div>
 
       <div class="member" *ngFor="let m of members">
-        <div class="avatar" [class.editable]="canEdit(m)" (click)="canEdit(m) && changePhoto(m)">
+        <div class="avatar" [class.editable]="canEdit(m)" (click)="canEdit(m) && changePhoto(m); $event.stopPropagation()">
           <img *ngIf="m.photo" [src]="m.photo" alt="photo" />
           <span *ngIf="!m.photo">{{ initials(m) }}</span>
           <span *ngIf="canEdit(m)" class="cam">📷</span>
         </div>
-        <div class="info">
+        <div class="info clickable" (click)="openView(m)" role="button" [attr.aria-label]="'Voir la fiche de ' + m.firstName + ' ' + m.lastName">
           <div class="name">
             {{ m.firstName }} {{ m.lastName }}
             <span *ngIf="m.role === 'admin'" class="badge badge-proposed">👑 Admin</span>
@@ -103,19 +103,23 @@ import { Member } from '../../../core/models/api.models';
             <span *ngIf="m.isActive === false && !m.isDeceased" class="badge badge-closed">💤 Inactif</span>
           </div>
           <div class="rel blocked-note" *ngIf="m.isBlocked && auth.isAdmin">
-            Prêt impayé à l'échéance. <a (click)="unblock(m)">Débloquer →</a>
+            Prêt impayé à l'échéance. <a (click)="unblock(m); $event.stopPropagation()">Débloquer →</a>
           </div>
           <div class="rel nologin" *ngIf="!m.canLogin && !m.isDeceased && canManageLogin() && m.id !== auth.snapshot?.member?.id">
             🔒 Ne peut pas se connecter.
-            <a (click)="enableLogin(m)">Activer la connexion →</a>
+            <a (click)="enableLogin(m); $event.stopPropagation()">Activer la connexion →</a>
+          </div>
+          <div class="rel pending-invite" *ngIf="m.hasPendingInvite && !m.isDeceased && canManageLogin()">
+            ⏳ Invitation envoyée, en attente.
+            <a (click)="enableLogin(m); $event.stopPropagation()">Renvoyer l'invitation →</a>
           </div>
           <div class="rel email" *ngIf="auth.isAdmin && m.email">✉️ {{ m.email }}</div>
           <div class="rel" *ngIf="m.fatherName || m.motherName">⬆️ Parents : {{ parents(m) }}</div>
           <div class="rel children" *ngIf="m.children?.length">⬇️ Enfants : {{ childrenNames(m) }}</div>
         </div>
         <div class="row-actions">
-          <a *ngIf="canEdit(m)" class="edit-mini" [routerLink]="['/members', 'edit', m.id]" title="Modifier le profil">✏️</a>
-          <button *ngIf="m.phone" class="wa-mini" (click)="notify(m)" title="Prévenir par WhatsApp">💬</button>
+          <a *ngIf="canEdit(m)" class="edit-mini" [routerLink]="['/members', 'edit', m.id]" title="Modifier le profil" (click)="$event.stopPropagation()">✏️</a>
+          <button *ngIf="m.phone" class="wa-mini" (click)="notify(m); $event.stopPropagation()" title="Prévenir par WhatsApp">💬</button>
         </div>
       </div>
     </ion-content>
@@ -143,7 +147,9 @@ import { Member } from '../../../core/models/api.models';
       .avatar.editable { cursor: pointer; }
       .avatar .cam { position: absolute; right: -2px; bottom: -2px; font-size: .7rem; background: #0f172a; border-radius: 50%; padding: 1px 2px; }
       .info { flex: 1; }
-      .name { color: #fff; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .info.clickable { cursor: pointer; }
+      .info.clickable:hover .name { color: #a5b4fc; }
+      .name { color: #fff; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; transition: color .15s ease; }
       .rel { color: #94a3b8; font-size: .85rem; margin-top: 4px; }
       .rel.email { color: #cbd5e1; }
       .rel.children { color: #cbd5e1; }
@@ -151,6 +157,8 @@ import { Member } from '../../../core/models/api.models';
       .rel.blocked-note a { color: #a5b4fc; cursor: pointer; text-decoration: underline; }
       .rel.nologin { color: #cbd5e1; }
       .rel.nologin a { color: #a5b4fc; cursor: pointer; text-decoration: underline; }
+      .rel.pending-invite { color: #fbbf24; }
+      .rel.pending-invite a { color: #a5b4fc; cursor: pointer; text-decoration: underline; }
       .sub-actions { display: flex; gap: 10px; margin-bottom: 16px; }
       .sub-actions ion-button { flex: 1; --border-radius: 12px; }
       .row-actions { display: flex; flex-direction: column; gap: 8px; align-self: center; flex-shrink: 0; }
@@ -166,6 +174,7 @@ export class MembersListPage implements OnInit {
   private readonly alertCtrl = inject(AlertController);
   private readonly whatsapp = inject(WhatsappService);
   private readonly images = inject(ImageService);
+  private readonly router = inject(Router);
   readonly auth = inject(AuthService);
   members: Member[] = [];
   info: FamilyInfo | null = null;
@@ -185,6 +194,9 @@ export class MembersListPage implements OnInit {
 
   initials(m: Member) {
     return `${m.firstName.charAt(0)}${m.lastName.charAt(0)}`.toUpperCase();
+  }
+  openView(m: Member) {
+    this.router.navigate(['/members', 'view', m.id]);
   }
   parents(m: Member) {
     return [m.fatherName, m.motherName].filter(Boolean).join(' · ') || '—';

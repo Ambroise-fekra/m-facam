@@ -76,6 +76,7 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/members/add/member-add.page').then((m) => m.MemberAddPage),
       },
       { path: 'birthdays', loadComponent: () => import('./pages/birthdays/birthdays.page').then((m) => m.BirthdaysPage) },
+      { path: 'view/:id', loadComponent: () => import('./pages/members/view/member-view.page').then((m) => m.MemberViewPage) },
       { path: 'edit/:id', loadComponent: () => import('./pages/profile/profile.page').then((m) => m.ProfilePage) },
     ],
   },

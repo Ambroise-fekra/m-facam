@@ -11,6 +11,22 @@ import { DeclareDescendantDto } from './dto/declare-descendant.dto';
 import { FamilyContext } from '../../common/decorators/family-context.decorator';
 import { Family } from '../../master/families/family.entity';
 
+/**
+ * Normalise un numéro de téléphone : conserve un éventuel "+" en tête et tous
+ * les chiffres, supprime espaces, tirets, parenthèses et autres séparateurs.
+ * "+33 6 12 34 56 78" → "+33612345678" ; "0612345678" → "0612345678".
+ * Renvoie null si la chaîne ne contient aucun chiffre.
+ */
+function normalizePhone(input: string | null | undefined): string | null {
+  if (input === null || input === undefined) return null;
+  const trimmed = String(input).trim();
+  if (!trimmed) return null;
+  const hasPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/[^0-9]/g, '');
+  if (!digits) return null;
+  return (hasPlus ? '+' : '') + digits;
+}
+
 @Injectable()
 export class MembersService {
   constructor(
@@ -123,16 +139,22 @@ export class MembersService {
       canLogin: !!(m.passwordHash || m.inviteToken),
       // True only when the member has actually set a password — pré-requis pour être considéré « actif ».
       hasPassword: !!m.passwordHash,
+      // True when an invite link exists but the member hasn't yet set their
+      // password : the admin can re-share the link via "Renvoyer l'invitation".
+      hasPendingInvite: !m.passwordHash && !!m.inviteToken,
       children,
     };
   }
 
   async create(fam: FamilyContext, dto: CreateMemberDto): Promise<{ id: string; inviteToken: string | null }> {
     const repo = await this.repo(fam.identifier);
+    // Normalise le téléphone (supprime espaces/tirets) tôt — utilisé aussi pour
+    // construire les liens wa.me et pour la validation "email OU téléphone".
+    const phone = normalizePhone(dto.phone);
     // A member who can log in must be reachable: at least an email OR a phone
     // (phone-only members get an invitation link via WhatsApp and will set
     // their email themselves on the accept-invite page).
-    if (dto.canLogin && !dto.email && !dto.phone) {
+    if (dto.canLogin && !dto.email && !phone) {
       throw new BadRequestException('Un membre qui peut se connecter doit avoir au moins un email ou un numéro de téléphone (pour recevoir le lien d\'invitation).');
     }
     // If the member may log in but no password is set by the admin, generate an
@@ -145,7 +167,7 @@ export class MembersService {
       firstName: dto.firstName,
       lastName: dto.lastName,
       email,
-      phone: dto.phone ?? null,
+      phone,
       birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
       gender: dto.gender ?? null,
       paypalEmail: dto.paypalEmail ?? null,
@@ -261,7 +283,7 @@ export class MembersService {
       lastName: dto.lastName,
       gender: dto.gender,
       birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
-      phone: dto.phone || null,
+      phone: normalizePhone(dto.phone),
       email: dto.email ? dto.email.toLowerCase() : null,
       fatherId: me.gender === 'M' ? me.id : null,
       motherId: me.gender === 'F' ? me.id : null,
@@ -309,7 +331,7 @@ export class MembersService {
 
     if (dto.firstName !== undefined) m.firstName = dto.firstName;
     if (dto.lastName !== undefined) m.lastName = dto.lastName;
-    if (dto.phone !== undefined) m.phone = dto.phone || null;
+    if (dto.phone !== undefined) m.phone = normalizePhone(dto.phone);
     if (dto.gender !== undefined) m.gender = (dto.gender || null) as MemberGender | null;
     if (dto.paypalEmail !== undefined) m.paypalEmail = dto.paypalEmail || null;
     if (dto.birthDate !== undefined) m.birthDate = dto.birthDate ? new Date(dto.birthDate) : null;
@@ -351,7 +373,7 @@ export class MembersService {
       }
       m.isActive = dto.isActive;
     }
-    if (dto.mobileMoneyNumber !== undefined) m.mobileMoneyNumber = dto.mobileMoneyNumber || null;
+    if (dto.mobileMoneyNumber !== undefined) m.mobileMoneyNumber = normalizePhone(dto.mobileMoneyNumber);
     if (dto.mobileMoneyOperator !== undefined) m.mobileMoneyOperator = dto.mobileMoneyOperator || null;
     if (dto.preferredChannel !== undefined) {
       m.preferredChannel = (dto.preferredChannel || null) as 'paypal' | 'mobile_money' | null;

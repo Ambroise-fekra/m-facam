@@ -41,7 +41,17 @@ export class AdminService {
     if (dto.whatsappUrl !== undefined) updates.whatsappUrl = dto.whatsappUrl;
     if (dto.photo !== undefined) updates.photo = dto.photo;
     if (dto.chiefMemberId !== undefined) updates.chiefMemberId = dto.chiefMemberId;
-    if (dto.mobileMoneyNumber !== undefined) updates.mobileMoneyNumber = dto.mobileMoneyNumber || null;
+    if (dto.mobileMoneyNumber !== undefined) {
+      // Normalise (supprime espaces, tirets…) — conserve un éventuel "+" initial.
+      const raw = String(dto.mobileMoneyNumber ?? '').trim();
+      if (!raw) {
+        updates.mobileMoneyNumber = null;
+      } else {
+        const plus = raw.startsWith('+');
+        const digits = raw.replace(/[^0-9]/g, '');
+        updates.mobileMoneyNumber = digits ? (plus ? '+' : '') + digits : null;
+      }
+    }
     if (dto.mobileMoneyOperator !== undefined) updates.mobileMoneyOperator = dto.mobileMoneyOperator || null;
     if (Object.keys(updates).length > 0) {
       await this.familyRepo.update({ id: fam.familyId }, updates);

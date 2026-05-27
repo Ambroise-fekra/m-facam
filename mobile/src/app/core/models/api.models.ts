@@ -121,6 +121,8 @@ export interface Member {
   canLogin?: boolean;
   /** True only when the member has actually set a password (pre-requisite to be "actif"). */
   hasPassword?: boolean;
+  /** True when an invite link exists but the member hasn't yet set their password. */
+  hasPendingInvite?: boolean;
   /** Mobile Money personnel pour recevoir un versement. */
   mobileMoneyNumber?: string | null;
   /** mtn | orange | airtel | moov | other */
