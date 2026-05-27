@@ -70,6 +70,10 @@ export class NotificationsPage implements OnInit {
     this.refresh();
   }
 
+  ionViewWillEnter() {
+    this.refresh();
+  }
+
   refresh() {
     this.api.notifications().subscribe((n) => (this.items = n));
   }

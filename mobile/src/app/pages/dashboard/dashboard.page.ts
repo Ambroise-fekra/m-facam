@@ -209,6 +209,16 @@ export class DashboardPage implements OnInit {
   }
 
   ngOnInit() {
+    this.reload();
+  }
+
+  /** Re-fetch on every page entry — Ionic caches the component, so ngOnInit
+   * doesn't fire when navigating back, leaving stale or empty data. */
+  ionViewWillEnter() {
+    this.reload();
+  }
+
+  private reload() {
     forkJoin({
       balance: this.api.myBalance(),
       cash: this.api.cash(),

@@ -97,6 +97,14 @@ export class BirthdaysPage implements OnInit {
   }
 
   ngOnInit() {
+    this.load();
+  }
+
+  ionViewWillEnter() {
+    this.load();
+  }
+
+  private load() {
     this.api.birthdays().subscribe((list) => {
       this.thisMonth = list.filter((b) => b.isThisMonth);
       this.nextMonthList = list.filter((b) => !b.isThisMonth);

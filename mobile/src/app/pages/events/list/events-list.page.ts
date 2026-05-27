@@ -104,6 +104,14 @@ export class EventsListPage implements OnInit {
   events: FamilyEvent[] = [];
 
   ngOnInit() {
+    this.load();
+  }
+
+  ionViewWillEnter() {
+    this.load();
+  }
+
+  private load() {
     this.api.events().subscribe((e) => (this.events = e));
   }
 

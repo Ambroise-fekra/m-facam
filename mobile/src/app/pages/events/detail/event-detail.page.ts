@@ -333,6 +333,14 @@ export class EventDetailPage implements OnInit {
   extNote = '';
 
   ngOnInit() {
+    this.refreshAll();
+  }
+
+  ionViewWillEnter() {
+    this.refreshAll();
+  }
+
+  private refreshAll() {
     this.reload();
     this.api.myBalance().subscribe((b) => (this.balance = b));
   }

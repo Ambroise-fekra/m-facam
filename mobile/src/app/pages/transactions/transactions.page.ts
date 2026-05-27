@@ -90,6 +90,14 @@ export class TransactionsPage implements OnInit {
   totalDebit = '0.00';
 
   ngOnInit() {
+    this.load();
+  }
+
+  ionViewWillEnter() {
+    this.load();
+  }
+
+  private load() {
     forkJoin({ tx: this.api.transactions(), bal: this.api.myBalance() }).subscribe(({ tx, bal }) => {
       this.transactions = tx;
       this.balance = bal;

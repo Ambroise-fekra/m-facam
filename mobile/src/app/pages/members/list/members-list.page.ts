@@ -174,6 +174,10 @@ export class MembersListPage implements OnInit {
     this.reload();
   }
 
+  ionViewWillEnter() {
+    this.reload();
+  }
+
   private reload() {
     this.api.members().subscribe((m) => (this.members = m));
     this.api.familyInfo().subscribe((i) => (this.info = i));

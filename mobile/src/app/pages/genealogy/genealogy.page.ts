@@ -165,6 +165,14 @@ export class GenealogyPage implements OnInit {
   roots: TreeNode[] = [];
 
   ngOnInit() {
+    this.load();
+  }
+
+  ionViewWillEnter() {
+    this.load();
+  }
+
+  private load() {
     this.api.tree().subscribe((r) => (this.roots = r));
   }
 
