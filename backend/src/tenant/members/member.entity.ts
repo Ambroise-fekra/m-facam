@@ -50,6 +50,18 @@ export class Member {
   @Column({ name: 'paypal_email', type: 'varchar', length: 160, nullable: true })
   paypalEmail: string | null;
 
+  /** Numéro Mobile Money — où verser à ce membre, s'il préfère ce canal. */
+  @Column({ name: 'mobile_money_number', type: 'varchar', length: 32, nullable: true })
+  mobileMoneyNumber: string | null;
+
+  /** mtn | orange | airtel | moov | other */
+  @Column({ name: 'mobile_money_operator', type: 'varchar', length: 16, nullable: true })
+  mobileMoneyOperator: string | null;
+
+  /** Canal préféré : 'paypal' | 'mobile_money' | null (à choisir au cas par cas). */
+  @Column({ name: 'preferred_channel', type: 'varchar', length: 16, nullable: true })
+  preferredChannel: 'paypal' | 'mobile_money' | null;
+
   @Column({ name: 'avatar_color', type: 'varchar', length: 16, nullable: true })
   avatarColor: string | null;
 

@@ -44,6 +44,8 @@ export class MembersService {
       identifier: family.identifier,
       whatsappUrl: family.whatsappUrl,
       paypalEmail: family.paypalEmail,
+      mobileMoneyNumber: family.mobileMoneyNumber,
+      mobileMoneyOperator: family.mobileMoneyOperator,
       photo: family.photo,
       admin: mini(adminM),
       chief: mini(chiefM),
@@ -112,6 +114,9 @@ export class MembersService {
       isBlocked: m.isBlocked,
       isDeceased: m.isDeceased,
       deceasedAt: m.deceasedAt ? String(m.deceasedAt).substring(0, 10) : null,
+      mobileMoneyNumber: m.mobileMoneyNumber,
+      mobileMoneyOperator: m.mobileMoneyOperator,
+      preferredChannel: m.preferredChannel,
       // True if this member has any way to log in (already has a password OR
       // an outstanding invite link). Used by the UI to offer "Activer la
       // connexion" only when needed.
@@ -343,6 +348,11 @@ export class MembersService {
         throw new BadRequestException('Un membre décédé ne peut pas être actif');
       }
       m.isActive = dto.isActive;
+    }
+    if (dto.mobileMoneyNumber !== undefined) m.mobileMoneyNumber = dto.mobileMoneyNumber || null;
+    if (dto.mobileMoneyOperator !== undefined) m.mobileMoneyOperator = dto.mobileMoneyOperator || null;
+    if (dto.preferredChannel !== undefined) {
+      m.preferredChannel = (dto.preferredChannel || null) as 'paypal' | 'mobile_money' | null;
     }
     await repo.save(m);
     const all = await repo.find();

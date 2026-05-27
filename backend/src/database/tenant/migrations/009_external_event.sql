@@ -7,18 +7,21 @@
 --   - new suggested_per_member: indicative amount to contribute per member.
 
 -- 1) Add 'external' to events.type CHECK constraint.
+--    Idempotent: only drop+re-add if the current constraint does not already
+--    contain 'external'.
 DO $$
 DECLARE c text;
 BEGIN
   SELECT conname INTO c FROM pg_constraint
    WHERE conrelid = 'events'::regclass AND contype = 'c'
-     AND pg_get_constraintdef(oid) ILIKE '%wedding%';
+     AND pg_get_constraintdef(oid) ILIKE '%wedding%'
+     AND pg_get_constraintdef(oid) NOT ILIKE '%external%';
   IF c IS NOT NULL THEN
     EXECUTE format('ALTER TABLE events DROP CONSTRAINT %I', c);
+    ALTER TABLE events ADD CONSTRAINT events_type_check
+      CHECK (type IN ('wedding','death','project','birthday','other','loan','external'));
   END IF;
 END $$;
-ALTER TABLE events ADD CONSTRAINT events_type_check
-  CHECK (type IN ('wedding','death','project','birthday','other','loan','external'));
 
 -- 2) target_amount becomes nullable. The original CHECK (target_amount > 0)
 --    accepts NULL automatically (NULL > 0 is UNKNOWN, not false).

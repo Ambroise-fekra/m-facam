@@ -183,6 +183,16 @@ export class EventsService {
     const responsibleName = e.responsible
       ? `${e.responsible.firstName} ${e.responsible.lastName}`
       : null;
+    // Payout coordinates of the responsable (visible only to the admin in the
+    // settle form, but harmless if returned in the decorated event payload).
+    const responsiblePayout = e.responsible
+      ? {
+          paypalEmail: e.responsible.paypalEmail,
+          mobileMoneyNumber: e.responsible.mobileMoneyNumber,
+          mobileMoneyOperator: e.responsible.mobileMoneyOperator,
+          preferredChannel: e.responsible.preferredChannel,
+        }
+      : null;
     // For loan events: progress = repayments (not allocations) and there are no
     // member allocations to track.
     let totalCollected: string;
@@ -245,6 +255,7 @@ export class EventsService {
       decisionDeadline: e.decisionDeadline,
       responsibleId: e.responsibleId,
       responsibleName,
+      responsiblePayout,
       borrowerId: e.borrowerId,
       borrowerName,
       status: e.status,

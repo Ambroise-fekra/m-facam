@@ -9,6 +9,8 @@ import {
   IonContent,
   IonHeader,
   IonInput,
+  IonSelect,
+  IonSelectOption,
   IonTitle,
   IonToolbar,
   ToastController,
@@ -29,6 +31,8 @@ import { ApiService } from '../../core/services/api.service';
     IonTitle,
     IonContent,
     IonInput,
+    IonSelect,
+    IonSelectOption,
     IonButton,
   ],
   template: `
@@ -45,8 +49,23 @@ import { ApiService } from '../../core/services/api.service';
         <div class="row"><span>Identifiant</span><strong>{{ family.identifier }}</strong></div>
       </div>
 
+      <p class="t-muted small">💡 La famille peut accepter <strong>PayPal</strong> (pour les membres en Europe) <strong>et</strong> <strong>Mobile Money</strong> (pour les membres au Congo) <strong>simultanément</strong>. Renseignez les deux si nécessaire.</p>
+
       <label class="fld-label">Email PayPal famille</label>
       <ion-input class="fld" type="email" [(ngModel)]="paypalEmail" placeholder="famille@paypal.com"></ion-input>
+
+      <label class="fld-label">Opérateur Mobile Money de la famille</label>
+      <ion-select class="fld" [(ngModel)]="mobileMoneyOperator" interface="alert" placeholder="— Aucun —">
+        <ion-select-option value="">— Aucun —</ion-select-option>
+        <ion-select-option value="mtn">MTN MoMo</ion-select-option>
+        <ion-select-option value="orange">Orange Money</ion-select-option>
+        <ion-select-option value="airtel">Airtel Money</ion-select-option>
+        <ion-select-option value="moov">Moov Money</ion-select-option>
+        <ion-select-option value="other">Autre</ion-select-option>
+      </ion-select>
+
+      <label class="fld-label">Numéro Mobile Money de la famille</label>
+      <ion-input class="fld" type="tel" [(ngModel)]="mobileMoneyNumber" placeholder="+242 06 …"></ion-input>
 
       <label class="fld-label">Lien WhatsApp</label>
       <ion-input class="fld" [(ngModel)]="whatsappUrl" placeholder="https://chat.whatsapp.com/…"></ion-input>
@@ -70,21 +89,47 @@ export class AdminPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toastCtrl = inject(ToastController);
 
-  family: { identifier: string; name: string; paypalEmail: string | null; whatsappUrl: string | null } | null = null;
+  family:
+    | {
+        identifier: string;
+        name: string;
+        paypalEmail: string | null;
+        whatsappUrl: string | null;
+        mobileMoneyNumber?: string | null;
+        mobileMoneyOperator?: string | null;
+      }
+    | null = null;
   paypalEmail = '';
   whatsappUrl = '';
+  mobileMoneyNumber = '';
+  mobileMoneyOperator = '';
 
   ngOnInit() {
+    this.load();
+  }
+
+  ionViewWillEnter() {
+    this.load();
+  }
+
+  private load() {
     this.api.family().subscribe((f) => {
       this.family = f;
       this.paypalEmail = f.paypalEmail ?? '';
       this.whatsappUrl = f.whatsappUrl ?? '';
+      this.mobileMoneyNumber = f.mobileMoneyNumber ?? '';
+      this.mobileMoneyOperator = f.mobileMoneyOperator ?? '';
     });
   }
 
   async save() {
     this.api
-      .updateFamily({ paypalEmail: this.paypalEmail || undefined, whatsappUrl: this.whatsappUrl || undefined })
+      .updateFamily({
+        paypalEmail: this.paypalEmail,
+        whatsappUrl: this.whatsappUrl,
+        mobileMoneyNumber: this.mobileMoneyNumber,
+        mobileMoneyOperator: this.mobileMoneyOperator,
+      })
       .subscribe(async () => {
         const t = await this.toastCtrl.create({ message: 'Paramètres enregistrés', color: 'success', duration: 2200 });
         await t.present();

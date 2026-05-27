@@ -40,6 +40,8 @@ export interface FamilyInfo {
   identifier: string;
   whatsappUrl: string | null;
   paypalEmail: string | null;
+  mobileMoneyNumber?: string | null;
+  mobileMoneyOperator?: string | null;
   photo: string | null;
   admin: MemberMini | null;
   chief: MemberMini | null;
@@ -101,6 +103,11 @@ interface MemberUpdatePayload {
   deceasedAt?: string;
   /** Admin/chef only. */
   isActive?: boolean;
+  /** Mobile Money personnel. */
+  mobileMoneyNumber?: string;
+  mobileMoneyOperator?: string;
+  /** 'paypal' | 'mobile_money' | '' to clear. */
+  preferredChannel?: 'paypal' | 'mobile_money' | '';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -300,12 +307,25 @@ export class ApiService {
   }
 
   family() {
-    return this.http.get<{ paypalEmail: string | null; whatsappUrl: string | null; name: string; identifier: string; photo: string | null }>(
-      `${this.base}/admin/family`,
-    );
+    return this.http.get<{
+      paypalEmail: string | null;
+      whatsappUrl: string | null;
+      name: string;
+      identifier: string;
+      photo: string | null;
+      mobileMoneyNumber: string | null;
+      mobileMoneyOperator: string | null;
+    }>(`${this.base}/admin/family`);
   }
 
-  updateFamily(p: { paypalEmail?: string; whatsappUrl?: string; photo?: string; chiefMemberId?: string | null }) {
+  updateFamily(p: {
+    paypalEmail?: string;
+    whatsappUrl?: string;
+    photo?: string;
+    chiefMemberId?: string | null;
+    mobileMoneyNumber?: string;
+    mobileMoneyOperator?: string;
+  }) {
     return this.http.patch<void>(`${this.base}/admin/family`, p);
   }
 }

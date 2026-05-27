@@ -32,6 +32,14 @@ export class Family {
   @Column({ name: 'paypal_email', type: 'varchar', length: 160, nullable: true })
   paypalEmail: string | null;
 
+  /** Compte Mobile Money central de la famille (encaisse les cotisations Africa). */
+  @Column({ name: 'mobile_money_number', type: 'varchar', length: 32, nullable: true })
+  mobileMoneyNumber: string | null;
+
+  /** mtn | orange | airtel | moov | other */
+  @Column({ name: 'mobile_money_operator', type: 'varchar', length: 16, nullable: true })
+  mobileMoneyOperator: string | null;
+
   @Column({ name: 'whatsapp_url', type: 'varchar', length: 255, nullable: true })
   whatsappUrl: string | null;
 

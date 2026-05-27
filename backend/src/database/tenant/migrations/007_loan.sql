@@ -6,18 +6,21 @@
 
 -- 1) Extend the events.type CHECK constraint to include 'loan'. The original
 --    constraint name may be auto-generated; drop by content match then re-add.
+--    Idempotent: skip when 'loan' is already part of an existing CHECK so we
+--    don't downgrade a constraint that later migrations have already widened.
 DO $$
 DECLARE c text;
 BEGIN
   SELECT conname INTO c FROM pg_constraint
    WHERE conrelid = 'events'::regclass AND contype = 'c'
-     AND pg_get_constraintdef(oid) ILIKE '%wedding%';
+     AND pg_get_constraintdef(oid) ILIKE '%wedding%'
+     AND pg_get_constraintdef(oid) NOT ILIKE '%loan%';
   IF c IS NOT NULL THEN
     EXECUTE format('ALTER TABLE events DROP CONSTRAINT %I', c);
+    ALTER TABLE events ADD CONSTRAINT events_type_check
+      CHECK (type IN ('wedding','death','project','birthday','other','loan'));
   END IF;
 END $$;
-ALTER TABLE events ADD CONSTRAINT events_type_check
-  CHECK (type IN ('wedding','death','project','birthday','other','loan'));
 
 -- 2) Borrower (member who took the loan) — required when type='loan'.
 ALTER TABLE events ADD COLUMN IF NOT EXISTS borrower_id uuid REFERENCES members(id) ON DELETE RESTRICT;

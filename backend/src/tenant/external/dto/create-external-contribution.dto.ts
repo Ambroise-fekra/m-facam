@@ -6,8 +6,8 @@ export class CreateExternalContributionDto {
   amount: number;
 
   @IsOptional()
-  @IsEnum(['transfer', 'cash', 'cheque', 'paypal', 'other'])
-  method?: 'transfer' | 'cash' | 'cheque' | 'paypal' | 'other';
+  @IsEnum(['transfer', 'cash', 'cheque', 'paypal', 'mobile_money', 'other'])
+  method?: 'transfer' | 'cash' | 'cheque' | 'paypal' | 'mobile_money' | 'other';
 
   @IsOptional()
   @IsString()

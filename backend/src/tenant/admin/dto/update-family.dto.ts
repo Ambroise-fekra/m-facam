@@ -19,4 +19,14 @@ export class UpdateFamilyDto {
   @ValidateIf((o) => o.chiefMemberId !== null)
   @IsUUID()
   chiefMemberId?: string | null;
+
+  /** Numéro Mobile Money central de la famille. */
+  @IsOptional()
+  @IsString()
+  mobileMoneyNumber?: string;
+
+  /** Opérateur Mobile Money : mtn | orange | airtel | moov | other. */
+  @IsOptional()
+  @IsString()
+  mobileMoneyOperator?: string;
 }

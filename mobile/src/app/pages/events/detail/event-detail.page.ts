@@ -159,6 +159,7 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
             <ion-select-option value="cash">Espèces</ion-select-option>
             <ion-select-option value="cheque">Chèque</ion-select-option>
             <ion-select-option value="paypal">PayPal</ion-select-option>
+            <ion-select-option value="mobile_money">Mobile Money</ion-select-option>
             <ion-select-option value="other">Autre</ion-select-option>
           </ion-select>
           <label class="fld-label">Note</label>
@@ -193,12 +194,18 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         <div class="facam-card" *ngIf="event.payoutStatus !== 'done' && auth.isAdmin">
           <h3 class="h-title">💸 Remettre les fonds à l'emprunteur</h3>
           <p class="t-muted small">Remettez <strong>{{ event.targetAmount }} €</strong> à {{ event.borrowerName }}, puis enregistrez le mode.</p>
+          <div class="payout-coords" *ngIf="event.responsiblePayout">
+            <span *ngIf="event.responsiblePayout.preferredChannel" class="pref">📌 Canal préféré : <strong>{{ event.responsiblePayout.preferredChannel === 'paypal' ? 'PayPal' : 'Mobile Money' }}</strong></span>
+            <span *ngIf="event.responsiblePayout.paypalEmail">📧 PayPal : <strong>{{ event.responsiblePayout.paypalEmail }}</strong></span>
+            <span *ngIf="event.responsiblePayout.mobileMoneyNumber">📱 {{ operatorLabel(event.responsiblePayout.mobileMoneyOperator) }} : <strong>{{ event.responsiblePayout.mobileMoneyNumber }}</strong></span>
+          </div>
           <label class="fld-label req">Mode de versement</label>
           <ion-select class="fld" interface="alert" [(ngModel)]="payoutMethod" placeholder="Choisir">
             <ion-select-option value="transfer">Virement bancaire</ion-select-option>
             <ion-select-option value="cash">Espèces</ion-select-option>
             <ion-select-option value="cheque">Chèque</ion-select-option>
             <ion-select-option value="paypal">PayPal</ion-select-option>
+            <ion-select-option value="mobile_money">Mobile Money</ion-select-option>
             <ion-select-option value="other">Autre</ion-select-option>
           </ion-select>
           <label class="fld-label">Note (optionnel)</label>
@@ -220,6 +227,7 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
             <ion-select-option value="cash">Espèces</ion-select-option>
             <ion-select-option value="cheque">Chèque</ion-select-option>
             <ion-select-option value="paypal">PayPal</ion-select-option>
+            <ion-select-option value="mobile_money">Mobile Money</ion-select-option>
             <ion-select-option value="other">Autre</ion-select-option>
           </ion-select>
           <label class="fld-label">Note</label>
@@ -260,12 +268,18 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
           <div class="facam-card" *ngIf="auth.isAdmin">
             <h3 class="h-title">💸 Enregistrer le versement</h3>
             <p class="t-muted small">Remettez <strong>{{ event.totalCollected }} €</strong> à {{ event.responsibleName }} par le canal de votre choix, puis enregistrez-le ici.</p>
+            <div class="payout-coords" *ngIf="event.responsiblePayout">
+              <span *ngIf="event.responsiblePayout.preferredChannel" class="pref">📌 Canal préféré : <strong>{{ event.responsiblePayout.preferredChannel === 'paypal' ? 'PayPal' : 'Mobile Money' }}</strong></span>
+              <span *ngIf="event.responsiblePayout.paypalEmail">📧 PayPal : <strong>{{ event.responsiblePayout.paypalEmail }}</strong></span>
+              <span *ngIf="event.responsiblePayout.mobileMoneyNumber">📱 {{ operatorLabel(event.responsiblePayout.mobileMoneyOperator) }} : <strong>{{ event.responsiblePayout.mobileMoneyNumber }}</strong></span>
+            </div>
             <label class="fld-label req">Mode de versement</label>
             <ion-select class="fld" interface="alert" [(ngModel)]="payoutMethod" placeholder="Choisir">
               <ion-select-option value="transfer">Virement bancaire</ion-select-option>
               <ion-select-option value="cash">Espèces</ion-select-option>
               <ion-select-option value="cheque">Chèque</ion-select-option>
               <ion-select-option value="paypal">PayPal</ion-select-option>
+              <ion-select-option value="mobile_money">Mobile Money</ion-select-option>
               <ion-select-option value="other">Autre</ion-select-option>
             </ion-select>
             <label class="fld-label">Note (optionnel)</label>
@@ -294,6 +308,9 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
       .rule-line { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; color: #cbd5e1; font-size: .88rem; padding: 5px 0; line-height: 1.5; }
       .rule-line strong { color: #fff; }
       .rule-line em { font-style: normal; color: #94a3b8; }
+      .payout-coords { display: flex; flex-direction: column; gap: 6px; background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.25); border-radius: 10px; padding: 10px 12px; margin: 8px 0 14px; font-size: .85rem; color: #cbd5e1; }
+      .payout-coords strong { color: #fff; }
+      .payout-coords .pref { color: #38bdf8; font-weight: 600; }
       .rule-line .check { font-size: 1.05rem; flex-shrink: 0; }
       .rule-line.state { justify-content: center; margin-top: 6px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,.12); font-weight: 700; color: #fff; }
       .vote-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -510,9 +527,21 @@ export class EventDetailPage implements OnInit {
       cash: 'Espèces',
       cheque: 'Chèque',
       paypal: 'PayPal',
+      mobile_money: 'Mobile Money',
       other: 'Autre',
     };
     return (m && map[m]) || '—';
+  }
+
+  operatorLabel(op?: string | null): string {
+    const map: Record<string, string> = {
+      mtn: 'MTN MoMo',
+      orange: 'Orange Money',
+      airtel: 'Airtel Money',
+      moov: 'Moov Money',
+      other: 'Mobile Money',
+    };
+    return (op && map[op]) || 'Mobile Money';
   }
 
   async closeNow() {

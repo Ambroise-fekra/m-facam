@@ -76,8 +76,31 @@ import { Member } from '../../core/models/api.models';
           <ion-select-option value="O">Autre</ion-select-option>
         </ion-select>
 
+        <h3 class="h-title sec">💸 Coordonnées de paiement</h3>
+        <p class="t-muted small">Pour recevoir un versement quand vous êtes responsable d'un évènement. Vous pouvez renseigner les deux canaux si nécessaire.</p>
+
         <label class="fld-label">Email PayPal</label>
         <ion-input class="fld" type="email" formControlName="paypalEmail" placeholder="paypal@email.com"></ion-input>
+
+        <label class="fld-label">Opérateur Mobile Money</label>
+        <ion-select class="fld" formControlName="mobileMoneyOperator" interface="alert" placeholder="— Aucun —">
+          <ion-select-option [value]="''">— Aucun —</ion-select-option>
+          <ion-select-option value="mtn">MTN MoMo</ion-select-option>
+          <ion-select-option value="orange">Orange Money</ion-select-option>
+          <ion-select-option value="airtel">Airtel Money</ion-select-option>
+          <ion-select-option value="moov">Moov Money</ion-select-option>
+          <ion-select-option value="other">Autre</ion-select-option>
+        </ion-select>
+
+        <label class="fld-label">Numéro Mobile Money</label>
+        <ion-input class="fld" type="tel" formControlName="mobileMoneyNumber" placeholder="+242 06 …"></ion-input>
+
+        <label class="fld-label">Canal préféré (pour vos cotisations)</label>
+        <ion-select class="fld" formControlName="preferredChannel" interface="alert" placeholder="Au cas par cas">
+          <ion-select-option [value]="''">— Au cas par cas (choisir au moment de cotiser) —</ion-select-option>
+          <ion-select-option value="paypal">PayPal</ion-select-option>
+          <ion-select-option value="mobile_money">Mobile Money</ion-select-option>
+        </ion-select>
 
         <h3 class="h-title sec">Filiation</h3>
         <label class="fld-label">Père</label>
@@ -210,6 +233,9 @@ export class ProfilePage implements OnInit {
     paypalEmail: [''],
     fatherId: [''],
     motherId: [''],
+    mobileMoneyNumber: [''],
+    mobileMoneyOperator: [''],
+    preferredChannel: ['' as '' | 'paypal' | 'mobile_money'],
     isDeceased: [false],
     deceasedAt: [''],
     isActive: [false],
@@ -296,6 +322,9 @@ export class ProfilePage implements OnInit {
           paypalEmail: m.paypalEmail ?? '',
           fatherId: m.fatherId ?? '',
           motherId: m.motherId ?? '',
+          mobileMoneyNumber: m.mobileMoneyNumber ?? '',
+          mobileMoneyOperator: m.mobileMoneyOperator ?? '',
+          preferredChannel: (m.preferredChannel ?? '') as '' | 'paypal' | 'mobile_money',
           isDeceased: !!m.isDeceased,
           deceasedAt: m.deceasedAt ?? '',
           isActive: !!m.isActive,
@@ -343,6 +372,9 @@ export class ProfilePage implements OnInit {
       paypalEmail: v.paypalEmail,
       fatherId: v.fatherId,
       motherId: v.motherId,
+      mobileMoneyNumber: v.mobileMoneyNumber,
+      mobileMoneyOperator: v.mobileMoneyOperator,
+      preferredChannel: v.preferredChannel,
     };
     // Only include isDeceased + deceasedAt + isActive when the caller has the
     // right to set them, so the backend doesn't reject normal self-edits.

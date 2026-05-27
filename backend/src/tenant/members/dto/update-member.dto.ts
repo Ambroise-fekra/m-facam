@@ -55,4 +55,19 @@ export class UpdateMemberDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  /** Numéro Mobile Money personnel (pour recevoir un versement). */
+  @IsOptional()
+  @IsString()
+  mobileMoneyNumber?: string;
+
+  /** Opérateur Mobile Money personnel : mtn | orange | airtel | moov | other. */
+  @IsOptional()
+  @IsString()
+  mobileMoneyOperator?: string;
+
+  /** Canal préféré : 'paypal' | 'mobile_money' | '' (efface). */
+  @IsOptional()
+  @IsEnum(['paypal', 'mobile_money', ''])
+  preferredChannel?: 'paypal' | 'mobile_money' | '';
 }

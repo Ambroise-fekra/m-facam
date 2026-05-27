@@ -41,6 +41,8 @@ export class AdminService {
     if (dto.whatsappUrl !== undefined) updates.whatsappUrl = dto.whatsappUrl;
     if (dto.photo !== undefined) updates.photo = dto.photo;
     if (dto.chiefMemberId !== undefined) updates.chiefMemberId = dto.chiefMemberId;
+    if (dto.mobileMoneyNumber !== undefined) updates.mobileMoneyNumber = dto.mobileMoneyNumber || null;
+    if (dto.mobileMoneyOperator !== undefined) updates.mobileMoneyOperator = dto.mobileMoneyOperator || null;
     if (Object.keys(updates).length > 0) {
       await this.familyRepo.update({ id: fam.familyId }, updates);
     }

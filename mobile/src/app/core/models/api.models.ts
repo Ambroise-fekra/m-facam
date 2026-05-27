@@ -64,6 +64,13 @@ export interface FamilyEvent {
   decisionDeadline?: string | null;
   responsibleId: string;
   responsibleName?: string | null;
+  /** Coordonnées de paiement du responsable (admin only sur le formulaire de settle). */
+  responsiblePayout?: {
+    paypalEmail: string | null;
+    mobileMoneyNumber: string | null;
+    mobileMoneyOperator: string | null;
+    preferredChannel: 'paypal' | 'mobile_money' | null;
+  } | null;
   borrowerId?: string | null;
   borrowerName?: string | null;
   status: EventStatus;
@@ -114,6 +121,12 @@ export interface Member {
   canLogin?: boolean;
   /** True only when the member has actually set a password (pre-requisite to be "actif"). */
   hasPassword?: boolean;
+  /** Mobile Money personnel pour recevoir un versement. */
+  mobileMoneyNumber?: string | null;
+  /** mtn | orange | airtel | moov | other */
+  mobileMoneyOperator?: string | null;
+  /** 'paypal' | 'mobile_money' | null */
+  preferredChannel?: 'paypal' | 'mobile_money' | null;
   children?: MemberChild[];
 }
 
