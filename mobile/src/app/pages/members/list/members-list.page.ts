@@ -105,7 +105,7 @@ import { Member } from '../../../core/models/api.models';
           <div class="rel blocked-note" *ngIf="m.isBlocked && auth.isAdmin">
             Prêt impayé à l'échéance. <a (click)="unblock(m)">Débloquer →</a>
           </div>
-          <div class="rel nologin" *ngIf="!m.canLogin && !m.deceasedAt && canManageLogin() && m.id !== auth.snapshot?.member?.id">
+          <div class="rel nologin" *ngIf="!m.canLogin && !m.isDeceased && canManageLogin() && m.id !== auth.snapshot?.member?.id">
             🔒 Ne peut pas se connecter.
             <a (click)="enableLogin(m)">Activer la connexion →</a>
           </div>
@@ -261,6 +261,28 @@ export class MembersListPage implements OnInit {
   }
 
   async enableLogin(m: Member) {
+    // Guard rails: even if the visibility check elsewhere is bypassed, the
+    // server-side checks should never go through silently.
+    if (m.isDeceased) {
+      const t = await this.toastCtrl.create({
+        message: `${m.firstName} ${m.lastName} est marqué(e) comme décédé(e) : la connexion ne peut pas être activée.`,
+        color: 'warning',
+        duration: 3500,
+      });
+      await t.present();
+      return;
+    }
+    if (!m.email && !m.phone) {
+      const alert = await this.alertCtrl.create({
+        header: '📞 Coordonnées manquantes',
+        message:
+          `<strong>${m.firstName} ${m.lastName}</strong> n'a ni email ni téléphone enregistré. ` +
+          `Ajoutez au moins un numéro de téléphone (ou un email) via « ✏️ Modifier le profil » avant d'activer la connexion.`,
+        buttons: [{ text: 'OK', role: 'cancel' }],
+      });
+      await alert.present();
+      return;
+    }
     this.api.enableMemberLogin(m.id).subscribe({
       next: async (res) => {
         const identifier = this.auth.snapshot?.family.identifier ?? '';
@@ -309,6 +331,16 @@ export class MembersListPage implements OnInit {
         });
         await alert.present();
         this.reload();
+      },
+      error: async (err: unknown) => {
+        const raw = (err as { error?: { message?: string | string[] } })?.error?.message;
+        const msg = Array.isArray(raw) ? raw.join(' ') : raw || 'Impossible d\'activer la connexion pour ce membre.';
+        const t = await this.toastCtrl.create({
+          message: String(msg),
+          color: 'danger',
+          duration: 4500,
+        });
+        await t.present();
       },
     });
   }
