@@ -35,7 +35,13 @@ import { AuthService } from '../../../core/services/auth.service';
 
       <div *ngIf="state === 'ready'">
         <h2 class="h-title">Bonjour {{ info?.firstName }} 👋</h2>
-        <p class="t-muted">Choisissez votre mot de passe pour rejoindre la famille. Vous vous connecterez ensuite avec l'identifiant <strong>{{ identifier }}</strong> et votre email <strong>{{ info?.email }}</strong>.</p>
+        <p class="t-muted" *ngIf="!info?.needsEmail">Choisissez votre mot de passe pour rejoindre la famille. Vous vous connecterez ensuite avec l'identifiant <strong>{{ identifier }}</strong> et votre email <strong>{{ info?.email }}</strong>.</p>
+        <p class="t-muted" *ngIf="info?.needsEmail">Pour finaliser votre inscription, indiquez votre <strong>email</strong> (qui vous servira à vous connecter ensuite, avec l'identifiant <strong>{{ identifier }}</strong>) et choisissez votre mot de passe.</p>
+
+        <ng-container *ngIf="info?.needsEmail">
+          <label class="fld-label">Votre email</label>
+          <ion-input class="fld" type="email" [(ngModel)]="email" placeholder="votre@email.com" autocomplete="email"></ion-input>
+        </ng-container>
 
         <label class="fld-label">Nouveau mot de passe</label>
         <div class="pwd-wrap">
@@ -65,7 +71,8 @@ export class AcceptInvitePage implements OnInit {
   state: 'loading' | 'ready' | 'invalid' = 'loading';
   identifier = '';
   token = '';
-  info: { firstName: string; lastName: string; email: string } | null = null;
+  info: { firstName: string; lastName: string; email: string | null; phone: string | null; needsEmail: boolean } | null = null;
+  email = '';
   password = '';
   confirm = '';
   showPwd = false;
@@ -86,14 +93,20 @@ export class AcceptInvitePage implements OnInit {
     });
   }
 
+  private emailOk(): boolean {
+    if (!this.info?.needsEmail) return true;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim());
+  }
+
   valid(): boolean {
-    return this.password.length >= 8 && this.password === this.confirm;
+    return this.password.length >= 8 && this.password === this.confirm && this.emailOk();
   }
 
   async accept() {
     const loading = await this.loadingCtrl.create({ message: 'Activation…' });
     await loading.present();
-    this.api.acceptInvite(this.identifier, this.token, this.password).subscribe({
+    const emailArg = this.info?.needsEmail ? this.email.trim().toLowerCase() : undefined;
+    this.api.acceptInvite(this.identifier, this.token, this.password, emailArg).subscribe({
       next: async (res) => {
         await this.auth.applySession(res);
         await loading.dismiss();

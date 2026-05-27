@@ -266,32 +266,46 @@ export class MembersListPage implements OnInit {
         const identifier = this.auth.snapshot?.family.identifier ?? '';
         const link = `${window.location.origin}/auth/accept-invite?identifier=${encodeURIComponent(identifier)}&token=${res.inviteToken}`;
         const famName = this.info?.name ?? 'notre famille';
+        const hasPhone = !!(m.phone && m.phone.trim());
+        const channel = hasPhone
+          ? `<strong>WhatsApp</strong> (${m.phone}) ou copier le lien`
+          : `<strong>email</strong> ou en copiant le lien (pas de téléphone enregistré pour WhatsApp)`;
+        const setsEmailNote = !m.email
+          ? `<br><br>ℹ️ Ce membre n'a pas encore d'email : il en renseignera un à l'ouverture du lien (nécessaire pour se connecter ensuite).`
+          : '';
+        const buttons: Array<{ text: string; role?: string; handler?: () => void }> = [
+          {
+            text: '📋 Copier le lien',
+            handler: () => {
+              navigator.clipboard.writeText(link).then(async () => {
+                const t = await this.toastCtrl.create({ message: 'Lien copié', color: 'success', duration: 1500 });
+                await t.present();
+              });
+            },
+          },
+        ];
+        if (hasPhone) {
+          buttons.push({
+            text: '💬 Inviter par WhatsApp',
+            handler: () => {
+              const msg =
+                `Bonjour ${m.firstName} 👋\n\n` +
+                `Tu es invité(e) à rejoindre *${famName}* sur Family Cash Management — la caisse familiale de solidarité.\n\n` +
+                `Ouvre ce lien pour définir ton mot de passe${!m.email ? ' et renseigner ton email' : ''} :\n${link}\n\n` +
+                `Tu te connecteras ensuite avec :\n• Identifiant famille : *${identifier}*\n• Ton email\n• Ton mot de passe\n\n` +
+                `Une fois connecté(e), tu pourras aussi déclarer tes enfants depuis ton profil — l'admin les activera plus tard.\n\n` +
+                `À très vite ! 💛`;
+              this.whatsapp.share(msg, m.phone);
+            },
+          });
+        }
+        buttons.push({ text: 'Fermer', role: 'cancel' });
         const alert = await this.alertCtrl.create({
           header: '🔓 Connexion activée',
           message:
             `Un lien d'invitation a été créé pour <strong>${m.firstName} ${m.lastName}</strong>. ` +
-            `Partagez-le : à l'ouverture, il/elle définira son mot de passe et pourra se connecter.`,
-          buttons: [
-            {
-              text: '📋 Copier le lien',
-              handler: () => {
-                navigator.clipboard.writeText(link).then(async () => {
-                  const t = await this.toastCtrl.create({ message: 'Lien copié', color: 'success', duration: 1500 });
-                  await t.present();
-                });
-              },
-            },
-            {
-              text: '💬 WhatsApp',
-              handler: () => {
-                const msg = `Bonjour ${m.firstName}, tu es invité(e) à rejoindre ${famName} sur Family Cash Management. ` +
-                  `Ouvre ce lien pour définir ton mot de passe : ${link}\n\n` +
-                  `Une fois connecté(e), tu pourras aussi déclarer ta descendance (tes enfants) depuis ton profil — l'admin les activera plus tard.`;
-                this.whatsapp.share(msg, m.phone);
-              },
-            },
-            { text: 'Fermer', role: 'cancel' },
-          ],
+            `Partagez-le via ${channel}.${setsEmailNote}`,
+          buttons,
         });
         await alert.present();
         this.reload();

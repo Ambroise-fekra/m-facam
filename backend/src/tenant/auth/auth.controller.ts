@@ -28,7 +28,7 @@ export class AuthController {
 
   @Post('accept-invite')
   @ApiOperation({ summary: 'Member sets their own password from an invite and is logged in' })
-  acceptInvite(@Body() body: { identifier: string; token: string; password: string }) {
-    return this.auth.acceptInvite(body.identifier, body.token, body.password);
+  acceptInvite(@Body() body: { identifier: string; token: string; password: string; email?: string }) {
+    return this.auth.acceptInvite(body.identifier, body.token, body.password, body.email);
   }
 }

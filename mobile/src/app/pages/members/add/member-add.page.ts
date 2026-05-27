@@ -58,13 +58,15 @@ import { Member } from '../../../core/models/api.models';
         <label class="fld-label req">Nom</label>
         <ion-input class="fld" formControlName="lastName" placeholder="DUPONT"></ion-input>
 
-        <label class="fld-label" [class.req]="form.value.canLogin">Email</label>
+        <label class="fld-label">Email</label>
         <ion-input class="fld" type="email" formControlName="email" placeholder="sophie@email.com"></ion-input>
 
         <label class="fld-label">Téléphone</label>
         <ion-input class="fld" type="tel" formControlName="phone" placeholder="+33 6 …"></ion-input>
 
         <p class="hint" *ngIf="!form.value.canLogin">🌳 Proche <strong>décédé</strong> (arbre généalogique) qui ne se connectera jamais : laissez « peut se connecter » désactivé — <strong>email et téléphone facultatifs</strong>. Renseignez bien le <strong>sexe</strong> pour pouvoir le/la choisir comme <strong>père</strong> ou <strong>mère</strong>.</p>
+        <p class="hint" *ngIf="form.value.canLogin">💡 Pour activer la connexion, indiquez <strong>au moins un email OU un numéro de téléphone</strong>. Sans email, le lien d'invitation sera partagé via <strong>WhatsApp</strong> et le membre renseignera son email lui-même.</p>
+        <p class="error" *ngIf="form.value.canLogin && !hasContact()">⚠️ Un email <em>ou</em> un téléphone est requis pour activer la connexion.</p>
 
         <label class="fld-label">Date de naissance</label>
         <ion-input class="fld" type="date" formControlName="birthDate"></ion-input>
@@ -102,7 +104,7 @@ import { Member } from '../../../core/models/api.models';
           <p class="hint">💡 Laissez vide (recommandé) : on génère un <strong>lien d'invitation</strong> que vous partagez par WhatsApp ; le membre choisira lui-même son mot de passe. Sinon, vous devrez lui communiquer ce mot de passe.</p>
         </ng-container>
 
-        <ion-button type="submit" expand="block" [disabled]="form.invalid" class="ion-margin-top">
+        <ion-button type="submit" expand="block" [disabled]="form.invalid || (form.value.canLogin && !hasContact())" class="ion-margin-top">
           Ajouter le membre
         </ion-button>
       </form>
@@ -112,9 +114,15 @@ import { Member } from '../../../core/models/api.models';
         <div class="emoji">✅</div>
         <h3 class="h-title">Membre ajouté</h3>
         <ng-container *ngIf="inviteLink; else noInvite">
-          <p class="t-muted">Partagez ce lien d'invitation : le membre définira son mot de passe et rejoindra la famille.</p>
+          <p class="t-muted" *ngIf="createdPhone">
+            Partagez ce lien d'invitation : le membre définira son mot de passe (et son email si besoin) puis rejoindra la famille.
+          </p>
+          <p class="t-muted" *ngIf="!createdPhone">
+            Pas de téléphone renseigné : copiez le lien et envoyez-le par email à <strong>{{ createdName }}</strong>.
+          </p>
           <div class="link" (click)="copyLink()">{{ inviteLink }} 📋</div>
-          <ion-button expand="block" class="wa" (click)="inviteWhatsApp()">💬 Inviter par WhatsApp</ion-button>
+          <ion-button *ngIf="createdPhone" expand="block" class="wa" (click)="inviteWhatsApp()">💬 Inviter par WhatsApp</ion-button>
+          <ion-button *ngIf="!createdPhone" expand="block" fill="outline" (click)="copyLink()">📋 Copier le lien</ion-button>
         </ng-container>
         <ng-template #noInvite>
           <p class="t-muted">Ce membre a été créé{{ createdHasPassword ? ' avec un mot de passe' : ' sans accès connexion' }}.</p>
@@ -134,6 +142,7 @@ import { Member } from '../../../core/models/api.models';
       .result .link { background: rgba(99,102,241,.18); border: 1px solid rgba(99,102,241,.35); color: #fff; border-radius: 12px; padding: 12px; margin: 12px 0; font-size: .8rem; word-break: break-all; cursor: pointer; }
       .result .wa { --background: #25D366; --background-activated: #1da851; --color: #062e16; font-weight: 700; }
       .result ion-button { margin-top: 8px; }
+      .error { color: #f87171; font-size: .82rem; margin: 6px 0 0; }
     `,
   ],
 })
@@ -151,13 +160,13 @@ export class MemberAddPage implements OnInit {
   created = false;
   inviteLink = '';
   createdHasPassword = false;
-  private createdName = '';
-  private createdPhone = '';
+  createdName = '';
+  createdPhone = '';
 
   readonly form = this.fb.nonNullable.group({
     firstName: ['', Validators.required],
     lastName: ['', Validators.required],
-    email: ['', [Validators.email]], // required only when canLogin (see ngOnInit)
+    email: ['', [Validators.email]], // format-only — at least email OR phone required when canLogin (see hasContact())
     phone: [''],
     birthDate: [''],
     gender: ['', Validators.required],
@@ -177,12 +186,15 @@ export class MemberAddPage implements OnInit {
 
   ngOnInit() {
     this.api.members().subscribe((m) => (this.members = m));
-    // Email is required only for members who can log in.
-    this.form.controls.canLogin.valueChanges.subscribe((can) => {
-      const email = this.form.controls.email;
-      email.setValidators(can ? [Validators.required, Validators.email] : [Validators.email]);
-      email.updateValueAndValidity();
-    });
+    // Email is no longer strictly required when canLogin=true: a phone number
+    // alone is enough (invitation via WhatsApp). We just keep the @ format
+    // check so that a typed email is well-formed.
+  }
+
+  /** When canLogin=true the user must provide at least an email OR a phone. */
+  hasContact(): boolean {
+    const v = this.form.getRawValue();
+    return !!(v.email && v.email.trim()) || !!(v.phone && v.phone.trim());
   }
 
   async submit() {
@@ -231,9 +243,13 @@ export class MemberAddPage implements OnInit {
 
   inviteWhatsApp() {
     const fam = this.auth.snapshot?.family.name ?? 'notre famille';
+    const identifier = this.auth.snapshot?.family.identifier ?? '';
     const msg =
-      `Bonjour ${this.createdName}, tu es invité(e) à rejoindre ${fam} sur Family Cash Management. ` +
-      `Ouvre ce lien pour définir ton mot de passe : ${this.inviteLink}`;
+      `Bonjour ${this.createdName} 👋\n\n` +
+      `Tu es invité(e) à rejoindre *${fam}* sur Family Cash Management — la caisse familiale de solidarité.\n\n` +
+      `Ouvre ce lien pour définir ton mot de passe (et renseigner ton email si besoin) :\n${this.inviteLink}\n\n` +
+      `Tu te connecteras ensuite avec :\n• Identifiant famille : *${identifier}*\n• Ton email\n• Ton mot de passe\n\n` +
+      `À très vite ! 💛`;
     this.whatsapp.share(msg, this.createdPhone);
   }
 

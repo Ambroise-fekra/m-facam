@@ -271,15 +271,21 @@ export class ApiService {
   }
 
   inviteInfo(identifier: string, token: string) {
-    return this.http.get<{ firstName: string; lastName: string; email: string }>(
+    return this.http.get<{
+      firstName: string;
+      lastName: string;
+      email: string | null;
+      phone: string | null;
+      needsEmail: boolean;
+    }>(
       `${this.base}/auth/invite-info?identifier=${encodeURIComponent(identifier)}&token=${encodeURIComponent(token)}`,
     );
   }
 
-  acceptInvite(identifier: string, token: string, password: string) {
+  acceptInvite(identifier: string, token: string, password: string, email?: string) {
     return this.http.post<import('../models/api.models').AuthResponse>(
       `${this.base}/auth/accept-invite`,
-      { identifier, token, password },
+      { identifier, token, password, ...(email ? { email } : {}) },
     );
   }
 

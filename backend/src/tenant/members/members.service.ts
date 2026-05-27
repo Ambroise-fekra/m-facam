@@ -129,9 +129,11 @@ export class MembersService {
 
   async create(fam: FamilyContext, dto: CreateMemberDto): Promise<{ id: string; inviteToken: string | null }> {
     const repo = await this.repo(fam.identifier);
-    // A member who can log in must have an email (used to sign in / invite).
-    if (dto.canLogin && !dto.email) {
-      throw new BadRequestException('Un membre qui peut se connecter doit avoir un email.');
+    // A member who can log in must be reachable: at least an email OR a phone
+    // (phone-only members get an invitation link via WhatsApp and will set
+    // their email themselves on the accept-invite page).
+    if (dto.canLogin && !dto.email && !dto.phone) {
+      throw new BadRequestException('Un membre qui peut se connecter doit avoir au moins un email ou un numéro de téléphone (pour recevoir le lien d\'invitation).');
     }
     // If the member may log in but no password is set by the admin, generate an
     // invite token so they can choose their own password via an invite link.
@@ -200,9 +202,9 @@ export class MembersService {
     if (m.isDeceased) {
       throw new BadRequestException('Ce membre est marqué comme décédé — la connexion ne peut pas être activée.');
     }
-    if (!m.email) {
+    if (!m.email && !m.phone) {
       throw new BadRequestException(
-        'Ajoutez d\'abord un email à ce membre (via « Modifier le profil ») avant d\'activer la connexion.',
+        'Ajoutez d\'abord un email OU un numéro de téléphone à ce membre (via « Modifier le profil ») avant d\'activer la connexion.',
       );
     }
     if (m.passwordHash) {
