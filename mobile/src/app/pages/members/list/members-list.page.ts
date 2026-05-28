@@ -189,7 +189,20 @@ export class MembersListPage implements OnInit {
   }
 
   private reload() {
-    this.api.members().subscribe((m) => (this.members = m));
+    this.api.members().subscribe((m) => {
+      // Epingle le membre connecte en tête de liste pour qu'il se retrouve
+      // immediatement sans scroller (familles nombreuses). Le reste suit
+      // l'ordre du backend (par nom / prénom).
+      const meId = this.auth.snapshot?.member?.id;
+      if (meId) {
+        const myIdx = m.findIndex((x) => x.id === meId);
+        if (myIdx > 0) {
+          const me = m[myIdx];
+          m = [me, ...m.slice(0, myIdx), ...m.slice(myIdx + 1)];
+        }
+      }
+      this.members = m;
+    });
     this.api.familyInfo().subscribe((i) => (this.info = i));
   }
 

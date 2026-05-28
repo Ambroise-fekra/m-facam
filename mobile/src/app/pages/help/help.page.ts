@@ -24,9 +24,9 @@ import {
       <h1 class="g-h1">Guide d'utilisation</h1>
       <p class="t-muted intro">
         Family Cash Management — gérez ensemble la caisse de votre famille : cotisations, évènements et solidarité,
-        <strong>en toute sécurité, fiabilité, confidentialité et transparence</strong>. Chacun voit la caisse globale,
-        les évènements et le décompte des votes ; <strong>seules les informations financières personnelles</strong>
-        (sa part, ses cotisations, ses allocations) restent privées.
+        <strong>en toute sécurité, fiabilité, démocratie, confidentialité et transparence</strong>. Chacun voit la
+        caisse globale, les évènements et le décompte des votes ; <strong>seules les informations financières
+        personnelles</strong> (sa part, ses cotisations, ses allocations) restent privées.
       </p>
 
       <h2 class="g-h2">👑 La famille, l'administrateur & le chef de famille</h2>
@@ -132,17 +132,16 @@ import {
         <li>Rappels d'<strong>abonnement</strong> avant échéance.</li>
       </ul>
 
-      <h2 class="g-h2">🔒 Sécurité, fiabilité, confidentialité & transparence</h2>
+      <h2 class="g-h2">🔒 Sécurité, fiabilité, démocratie, confidentialité & transparence</h2>
       <p>
         <strong>Votre argent reste sur les comptes de la famille</strong> — pas sur ceux de l'application :
       </p>
       <ul>
-        <li>Les cotisations sont versées directement sur le <strong>compte PayPal de la famille</strong> et / ou sur son <strong>compte Mobile Money</strong>. L'app <strong>ne stocke aucun mot de passe ni code d'accès</strong> à ces comptes ; ils restent gérés uniquement par votre administrateur familial.</li>
-        <li>Les paiements sont <strong>adossés aux technologies sécurisées</strong> de <strong>PayPal</strong> (compte Business avec protection acheteur/vendeur) et de <strong>CinetPay</strong> (agrégateur Mobile Money certifié BEAC). Les transactions transitent par leurs infrastructures et bénéficient de leurs garanties.</li>
-        <li>L'application n'a accès qu'aux <strong>confirmations de paiement</strong> (webhooks) — jamais aux numéros de carte ni aux mots de passe Mobile Money.</li>
-        <li><strong>Vie privée</strong> : chaque membre voit <strong>sa propre part</strong> et <strong>sa propre participation</strong> à un évènement, <strong>jamais</strong> celles des autres. La caisse et les cagnottes n'affichent que des <strong>totaux</strong>. Le vote est <strong>anonyme</strong>.</li>
-        <li><strong>Transparence</strong> : la caisse globale, les évènements, les décomptes de vote et les remboursements sont visibles par tous les membres actifs en temps réel.</li>
-        <li><strong>Traçabilité</strong> : chaque écriture financière conserve la <strong>devise d'origine</strong> (€ ou FCFA) telle que saisie, le <strong>mode de versement</strong> et l'<strong>auteur de l'enregistrement</strong> (membre ou admin), pour une réconciliation simple avec les relevés PayPal / Mobile Money.</li>
+        <li><strong>🔐 Sécurité</strong> : les cotisations sont versées directement sur le <strong>compte PayPal de la famille</strong> et / ou sur son <strong>compte Mobile Money</strong>. L'app <strong>ne stocke aucun mot de passe ni code d'accès</strong> à ces comptes ; ils restent gérés uniquement par votre administrateur familial. L'application n'a accès qu'aux <strong>confirmations de paiement</strong> (webhooks) — jamais aux numéros de carte ni aux mots de passe Mobile Money.</li>
+        <li><strong>🛡️ Fiabilité</strong> : les paiements sont <strong>adossés aux technologies sécurisées</strong> de <strong>PayPal</strong> (compte Business avec protection acheteur/vendeur) et de <strong>CinetPay</strong> (agrégateur Mobile Money certifié BEAC). Les transactions transitent par leurs infrastructures et bénéficient de leurs garanties. Sauvegardes quotidiennes de la base + certificat HTTPS renouvelé automatiquement.</li>
+        <li><strong>🗳️ Démocratie</strong> : <strong>chaque évènement est soumis au vote</strong> de la famille (proposition, prêt, évènement externe). Le vote est <strong>anonyme</strong>, <strong>modifiable</strong> jusqu'à l'échéance, et soumis à des règles claires (<strong>quorum 2/3</strong> des membres actifs + <strong>majorité 2/3</strong> des votants). Sur un prêt, <strong>l'emprunteur est exclu</strong> du vote et du quorum. L'argent collectif ne bouge que sur décision collective.</li>
+        <li><strong>👁️ Confidentialité</strong> : chaque membre voit <strong>sa propre part</strong> et <strong>sa propre participation</strong> à un évènement, <strong>jamais</strong> celles des autres. La caisse et les cagnottes n'affichent que des <strong>totaux</strong>. Le vote est <strong>anonyme</strong>.</li>
+        <li><strong>📖 Transparence</strong> : la caisse globale, les évènements, les décomptes de vote et les remboursements sont visibles par tous les membres actifs en temps réel. Chaque écriture financière conserve la <strong>devise d'origine</strong> (€ ou FCFA) telle que saisie, le <strong>mode de versement</strong> et l'<strong>auteur de l'enregistrement</strong> (membre ou admin), pour une réconciliation simple avec les relevés PayPal / Mobile Money.</li>
       </ul>
 
       <h2 class="g-h2">💶 Abonnement</h2>

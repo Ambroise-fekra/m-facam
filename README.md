@@ -34,6 +34,7 @@ Chaque famille crée son espace via un abonnement annuel **20 €/an** (1 mois d
 | **Notifications** | Cotisations, allocations, propositions, activations, clôtures, versements manuels enregistrés par l'admin, prêts impayés, rappels d'abonnement |
 | **Administration** | Identifiant famille, PayPal + Mobile Money famille, WhatsApp, chef de famille, abonnement, blocage/déblocage |
 | **Sécurité** | L'app n'a **aucun code d'accès** PayPal / Mobile Money. L'argent reste sur les comptes gérés par la famille. Paiements adossés aux infrastructures **PayPal** et **CinetPay** |
+| **Démocratique** | Chaque évènement (proposition, prêt, externe) est soumis au **vote anonyme** modifiable jusqu'à l'échéance, avec quorum 2/3 et majorité 2/3. Sur un prêt l'**emprunteur est exclu** du vote |
 
 ## Architecture multi-tenant
 
