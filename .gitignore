@@ -60,3 +60,6 @@ ScreenShots/
 
 # Imports — données personnelles (fichiers Excel sources et normalisés)
 imports/*.xlsx
+
+# Cloudflare Wrangler (cache local, compte / projet)
+.wrangler/
