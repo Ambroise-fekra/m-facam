@@ -21,7 +21,7 @@ import { ApiService, FamilyInfo } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { WhatsappService } from '../../../core/services/whatsapp.service';
 import { CurrencyService } from '../../../core/services/currency.service';
-import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.models';
+import { ExternalContribution, FamilyEvent, LoanRepayment, Member, MyBalance, VoteValue } from '../../../core/models/api.models';
 
 @Component({
   selector: 'app-event-detail',
@@ -139,8 +139,16 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         <div class="facam-card" *ngIf="event.type !== 'external'">
           <h3 class="h-title">Allouer depuis mon solde</h3>
           <p class="t-muted small" *ngIf="balance">Solde disponible : {{ currency.eurXaf(balance.balance) }}</p>
-          <label class="fld-label">Montant à allouer (€)</label>
-          <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="amount" placeholder="0"></ion-input>
+          <label class="fld-label">Devise</label>
+          <ion-select class="fld" interface="alert" [(ngModel)]="allocCurrency">
+            <ion-select-option value="EUR">€ Euro</ion-select-option>
+            <ion-select-option value="XAF">FCFA (Franc CFA)</ion-select-option>
+          </ion-select>
+          <label class="fld-label">Montant à allouer ({{ allocCurrency === 'XAF' ? 'FCFA' : '€' }})</label>
+          <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="amount" [placeholder]="allocCurrency === 'XAF' ? '10000' : '0'"></ion-input>
+          <p class="t-muted small" *ngIf="amount > 0">
+            ≈ <strong>{{ allocCurrency === 'XAF' ? currency.eur(currency.toEur(amount)) : currency.xaf(amount) }}</strong>
+          </p>
           <ion-button expand="block" class="ion-margin-top" [disabled]="!canAllocate()" (click)="allocate()">
             Confirmer l'allocation
           </ion-button>
@@ -152,8 +160,16 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
           <p class="t-muted small">
             Votre cotisation va <strong>directement</strong> à cet évènement — elle <strong>ne touche pas votre part</strong> dans la caisse familiale.
           </p>
-          <label class="fld-label req">Montant (€)</label>
-          <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="extAmount" [placeholder]="event.suggestedPerMember || '0'"></ion-input>
+          <label class="fld-label req">Devise</label>
+          <ion-select class="fld" interface="alert" [(ngModel)]="extCurrency">
+            <ion-select-option value="EUR">€ Euro</ion-select-option>
+            <ion-select-option value="XAF">FCFA (Franc CFA)</ion-select-option>
+          </ion-select>
+          <label class="fld-label req">Montant ({{ extCurrency === 'XAF' ? 'FCFA' : '€' }})</label>
+          <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="extAmount" [placeholder]="extCurrency === 'XAF' ? '10000' : (event.suggestedPerMember || '0')"></ion-input>
+          <p class="t-muted small" *ngIf="extAmount > 0">
+            ≈ <strong>{{ extCurrency === 'XAF' ? currency.eur(currency.toEur(extAmount)) : currency.xaf(extAmount) }}</strong>
+          </p>
           <label class="fld-label">Mode (optionnel)</label>
           <ion-select class="fld" interface="alert" [(ngModel)]="extMethod" placeholder="Choisir">
             <ion-select-option value="transfer">Virement bancaire</ion-select-option>
@@ -168,6 +184,23 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
           <ion-button expand="block" color="success" class="ion-margin-top" [disabled]="!canContributeExt()" (click)="contributeExt()">
             Enregistrer ma contribution
           </ion-button>
+        </div>
+
+        <!-- Liste des contributions sur un evt externe — admin peut supprimer une saisie erronee -->
+        <div class="facam-card" *ngIf="event.type === 'external' && extContributions.length">
+          <h3 class="h-title">📜 Contributions enregistrées</h3>
+          <div class="contrib-row" *ngFor="let c of extContributions">
+            <div class="ctr-info">
+              <div class="ctr-name">{{ memberNameOf(c.memberId) }}</div>
+              <div class="ctr-meta">
+                {{ c.createdAt | date: 'dd/MM/yyyy' }}
+                <span *ngIf="c.method"> · {{ c.method }}</span>
+                <span *ngIf="c.note"> · {{ c.note }}</span>
+              </div>
+            </div>
+            <div class="ctr-amount">{{ currency.asOriginal(c.originalAmount, c.originalCurrency, c.amount) }}</div>
+            <button *ngIf="auth.isAdmin" class="ctr-del" (click)="deleteExtContribution(c)" title="Supprimer (saisie erronée)">🗑️</button>
+          </div>
         </div>
 
         <div class="facam-card" *ngIf="auth.isAdmin">
@@ -220,8 +253,16 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         <div class="facam-card" *ngIf="event.payoutStatus === 'done' && isBorrower()">
           <h3 class="h-title">↩️ Enregistrer un remboursement</h3>
           <p class="t-muted small">Vous devez encore <strong>{{ currency.eurXaf(remainingLoan()) }}</strong>.</p>
-          <label class="fld-label req">Montant (€)</label>
-          <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="repayAmount" placeholder="0"></ion-input>
+          <label class="fld-label req">Devise</label>
+          <ion-select class="fld" interface="alert" [(ngModel)]="repayCurrency">
+            <ion-select-option value="EUR">€ Euro</ion-select-option>
+            <ion-select-option value="XAF">FCFA (Franc CFA)</ion-select-option>
+          </ion-select>
+          <label class="fld-label req">Montant ({{ repayCurrency === 'XAF' ? 'FCFA' : '€' }})</label>
+          <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="repayAmount" [placeholder]="repayCurrency === 'XAF' ? '10000' : '0'"></ion-input>
+          <p class="t-muted small" *ngIf="repayAmount > 0">
+            ≈ <strong>{{ repayCurrency === 'XAF' ? currency.eur(currency.toEur(repayAmount)) : currency.xaf(repayAmount) }}</strong>
+          </p>
           <label class="fld-label">Mode (optionnel)</label>
           <ion-select class="fld" interface="alert" [(ngModel)]="repayMethod" placeholder="Choisir">
             <ion-select-option value="transfer">Virement bancaire</ion-select-option>
@@ -236,6 +277,23 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
           <ion-button expand="block" class="ion-margin-top" color="success" [disabled]="!canRepay()" (click)="repay()">
             Enregistrer le remboursement
           </ion-button>
+        </div>
+
+        <!-- Liste des remboursements — visible par emprunteur + admin -->
+        <div class="facam-card" *ngIf="(isBorrower() || auth.isAdmin) && repayments.length">
+          <h3 class="h-title">📜 Remboursements enregistrés</h3>
+          <div class="contrib-row" *ngFor="let r of repayments">
+            <div class="ctr-info">
+              <div class="ctr-name">{{ memberNameOf(r.memberId) }}</div>
+              <div class="ctr-meta">
+                {{ r.createdAt | date: 'dd/MM/yyyy' }}
+                <span *ngIf="r.method"> · {{ r.method }}</span>
+                <span *ngIf="r.note"> · {{ r.note }}</span>
+              </div>
+            </div>
+            <div class="ctr-amount">{{ currency.asOriginal(r.originalAmount, r.originalCurrency, r.amount) }}</div>
+            <button *ngIf="auth.isAdmin" class="ctr-del" (click)="deleteRepayment(r)" title="Supprimer (saisie erronée)">🗑️</button>
+          </div>
         </div>
 
         <div class="facam-card" *ngIf="event.payoutStatus === 'done' && auth.isAdmin">
@@ -329,6 +387,14 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
       .payout-coords { display: flex; flex-direction: column; gap: 6px; background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.25); border-radius: 10px; padding: 10px 12px; margin: 8px 0 14px; font-size: .85rem; color: #cbd5e1; }
       .payout-coords strong { color: #fff; }
       .payout-coords .pref { color: #38bdf8; font-weight: 600; }
+      .contrib-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+      .contrib-row:last-child { border-bottom: none; }
+      .ctr-info { flex: 1; min-width: 0; }
+      .ctr-name { color: #fff; font-weight: 600; font-size: .92rem; }
+      .ctr-meta { color: #94a3b8; font-size: .78rem; margin-top: 2px; }
+      .ctr-amount { color: #34d399; font-weight: 700; font-size: .9rem; white-space: nowrap; }
+      .ctr-del { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.35); color: #f87171; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 1rem; }
+      .ctr-del:hover { background: rgba(248,113,113,.22); }
       .rule-line .check { font-size: 1.05rem; flex-shrink: 0; }
       .rule-line.state { justify-content: center; margin-top: 6px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,.12); font-weight: 700; color: #fff; }
       .vote-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -369,9 +435,19 @@ export class EventDetailPage implements OnInit {
   extAmount = 0;
   extMethod = '';
   extNote = '';
+  /** Devises saisies par le membre, indépendantes par formulaire. */
+  allocCurrency: 'EUR' | 'XAF' = 'EUR';
+  extCurrency: 'EUR' | 'XAF' = 'EUR';
+  repayCurrency: 'EUR' | 'XAF' = 'EUR';
   /** Prolongation : nouvelle date limite (collecte) + nouvelle date évènement. */
   extendDeadline = '';
   extendEventDate = '';
+
+  /** Listes pour affichage et suppression admin. */
+  extContributions: ExternalContribution[] = [];
+  repayments: LoanRepayment[] = [];
+  /** Membres de la famille pour résoudre les noms des contributeurs/emprunteurs. */
+  familyMembers: Member[] = [];
 
   ngOnInit() {
     this.refreshAll();
@@ -385,6 +461,90 @@ export class EventDetailPage implements OnInit {
     this.reload();
     this.api.myBalance().subscribe((b) => (this.balance = b));
     this.api.familyInfo().subscribe((i) => (this.familyInfo = i));
+    this.api.members().subscribe((list) => (this.familyMembers = list));
+    this.loadLists();
+  }
+
+  /** Charge les listes externes/repayments selon le type d'évènement. */
+  private loadLists() {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) return;
+    // On charge les deux ; les *ngIf masquent ce qui n'est pas pertinent.
+    this.api.listExternalContributions(id).subscribe({
+      next: (l) => (this.extContributions = l),
+      error: () => (this.extContributions = []),
+    });
+    this.api.listRepayments(id).subscribe({
+      next: (l) => (this.repayments = l),
+      error: () => (this.repayments = []),
+    });
+  }
+
+  memberNameOf(id: string): string {
+    const m = this.familyMembers.find((x) => x.id === id);
+    return m ? `${m.firstName} ${m.lastName}` : '—';
+  }
+
+  async deleteExtContribution(c: ExternalContribution) {
+    if (!this.event) return;
+    const confirm = await this.alertCtrl.create({
+      header: 'Supprimer cette contribution ?',
+      message:
+        `Voulez-vous supprimer la contribution de <strong>${this.memberNameOf(c.memberId)}</strong> de ` +
+        `<strong>${this.currency.asOriginal(c.originalAmount, c.originalCurrency, c.amount)}</strong> ? ` +
+        `Cette opération est définitive. Le total de l'évènement sera recalculé automatiquement.`,
+      buttons: [
+        { text: 'Annuler', role: 'cancel' },
+        { text: 'Supprimer', role: 'destructive' },
+      ],
+    });
+    await confirm.present();
+    const { role } = await confirm.onDidDismiss();
+    if (role !== 'destructive') return;
+    this.api.deleteExternalContribution(this.event.id, c.id).subscribe({
+      next: async () => {
+        const t = await this.toastCtrl.create({ message: 'Contribution supprimée', color: 'success', duration: 1800 });
+        await t.present();
+        this.refreshAll();
+      },
+      error: async (err: unknown) => {
+        const raw = (err as { error?: { message?: string | string[] } })?.error?.message;
+        const msg = Array.isArray(raw) ? raw.join(' ') : raw || 'Suppression impossible.';
+        const t = await this.toastCtrl.create({ message: String(msg), color: 'danger', duration: 3500 });
+        await t.present();
+      },
+    });
+  }
+
+  async deleteRepayment(r: LoanRepayment) {
+    if (!this.event) return;
+    const confirm = await this.alertCtrl.create({
+      header: 'Supprimer ce remboursement ?',
+      message:
+        `Voulez-vous supprimer le remboursement de ` +
+        `<strong>${this.currency.asOriginal(r.originalAmount, r.originalCurrency, r.amount)}</strong> ? ` +
+        `Cette opération est définitive. Si le prêt avait été clos, il sera rouvert automatiquement.`,
+      buttons: [
+        { text: 'Annuler', role: 'cancel' },
+        { text: 'Supprimer', role: 'destructive' },
+      ],
+    });
+    await confirm.present();
+    const { role } = await confirm.onDidDismiss();
+    if (role !== 'destructive') return;
+    this.api.deleteRepayment(this.event.id, r.id).subscribe({
+      next: async () => {
+        const t = await this.toastCtrl.create({ message: 'Remboursement supprimé', color: 'success', duration: 1800 });
+        await t.present();
+        this.refreshAll();
+      },
+      error: async (err: unknown) => {
+        const raw = (err as { error?: { message?: string | string[] } })?.error?.message;
+        const msg = Array.isArray(raw) ? raw.join(' ') : raw || 'Suppression impossible.';
+        const t = await this.toastCtrl.create({ message: String(msg), color: 'danger', duration: 3500 });
+        await t.present();
+      },
+    });
   }
 
   /** Admin OU chef de famille peuvent prolonger tant que les fonds ne sont pas versés. */
@@ -447,7 +607,15 @@ export class EventDetailPage implements OnInit {
     const loading = await this.loadingCtrl.create({ message: 'Enregistrement…' });
     await loading.present();
     this.api
-      .contributeExternal(this.event.id, this.extAmount, this.extMethod || undefined, this.extNote || undefined)
+      .contributeExternal(
+        this.event.id,
+        this.extAmount,
+        this.extMethod || undefined,
+        this.extNote || undefined,
+        undefined,
+        undefined,
+        this.extCurrency,
+      )
       .subscribe({
         next: async () => {
           await loading.dismiss();
@@ -496,14 +664,19 @@ export class EventDetailPage implements OnInit {
   }
 
   canRepay(): boolean {
-    return this.repayAmount > 0 && this.repayAmount <= this.remainingLoan() + 0.005;
+    // Convertit le montant saisi (potentiellement en FCFA) en EUR avant la
+    // comparaison au "reste dû" qui est lui en EUR.
+    const eur =
+      this.repayCurrency === 'XAF' ? this.currency.toEur(this.repayAmount) : this.repayAmount;
+    return this.repayAmount > 0 && eur <= this.remainingLoan() + 0.005;
   }
 
   async repay() {
     if (!this.event || !this.canRepay()) return;
+    const unit = this.repayCurrency === 'XAF' ? 'FCFA' : '€';
     const confirm = await this.alertCtrl.create({
       header: 'Confirmer le remboursement',
-      message: `Enregistrer un remboursement de ${this.repayAmount} € ?`,
+      message: `Enregistrer un remboursement de ${this.repayAmount} ${unit} ?`,
       buttons: [{ text: 'Annuler', role: 'cancel' }, { text: 'Confirmer', role: 'confirm' }],
     });
     await confirm.present();
@@ -512,7 +685,14 @@ export class EventDetailPage implements OnInit {
     const loading = await this.loadingCtrl.create({ message: 'Enregistrement…' });
     await loading.present();
     this.api
-      .recordRepayment(this.event.id, this.repayAmount, this.repayMethod || undefined, this.repayNote || undefined)
+      .recordRepayment(
+        this.event.id,
+        this.repayAmount,
+        this.repayMethod || undefined,
+        this.repayNote || undefined,
+        undefined,
+        this.repayCurrency,
+      )
       .subscribe({
         next: async () => {
           await loading.dismiss();
@@ -640,14 +820,20 @@ export class EventDetailPage implements OnInit {
   }
 
   canAllocate(): boolean {
-    return !!this.balance && this.amount > 0 && Number(this.balance.balance) >= this.amount;
+    if (!this.balance || this.amount <= 0) return false;
+    // Le solde est en EUR : on convertit le montant saisi (potentiellement FCFA)
+    // pour comparer.
+    const eur =
+      this.allocCurrency === 'XAF' ? this.currency.toEur(this.amount) : this.amount;
+    return Number(this.balance.balance) >= eur;
   }
 
   async allocate() {
     if (!this.event) return;
+    const unit = this.allocCurrency === 'XAF' ? 'FCFA' : '€';
     const confirm = await this.alertCtrl.create({
       header: "Confirmer l'allocation",
-      message: `Allouer ${this.amount} € à "${this.event.title}" ? Opération définitive.`,
+      message: `Allouer ${this.amount} ${unit} à "${this.event.title}" ? Opération définitive.`,
       buttons: [{ text: 'Annuler', role: 'cancel' }, { text: 'Confirmer', role: 'confirm' }],
     });
     await confirm.present();
@@ -656,7 +842,11 @@ export class EventDetailPage implements OnInit {
 
     const loading = await this.loadingCtrl.create({ message: 'Allocation…' });
     await loading.present();
-    this.api.allocate({ eventId: this.event.id, amount: this.amount }).subscribe({
+    // On envoie le montant tel que saisi, avec la devise. Le backend convertit
+    // en EUR canonique pour la comparaison au solde et persiste les originels.
+    this.api
+      .allocate({ eventId: this.event.id, amount: this.amount, currency: this.allocCurrency })
+      .subscribe({
       next: async () => {
         await loading.dismiss();
         const t = await this.toastCtrl.create({ message: 'Allocation enregistrée', color: 'success', duration: 2200 });

@@ -60,6 +60,8 @@ interface ContributionPayload {
 interface AllocationPayload {
   eventId: string;
   amount: number;
+  /** Devise du montant saisi (EUR par défaut). XAF = FCFA BEAC. */
+  currency?: 'EUR' | 'XAF';
 }
 
 interface EventCreatePayload {
@@ -263,6 +265,20 @@ export class ApiService {
   listExternalContributions(eventId: string) {
     return this.http.get<import('../models/api.models').ExternalContribution[]>(
       `${this.base}/events/${eventId}/external-contributions`,
+    );
+  }
+
+  /** Admin : supprimer une contribution externe erronée. */
+  deleteExternalContribution(eventId: string, contribId: string) {
+    return this.http.delete<{ id: string; deleted: boolean }>(
+      `${this.base}/events/${eventId}/external-contributions/${contribId}`,
+    );
+  }
+
+  /** Admin : supprimer un remboursement de prêt erroné. */
+  deleteRepayment(eventId: string, repayId: string) {
+    return this.http.delete<{ id: string; deleted: boolean }>(
+      `${this.base}/events/${eventId}/repayments/${repayId}`,
     );
   }
 

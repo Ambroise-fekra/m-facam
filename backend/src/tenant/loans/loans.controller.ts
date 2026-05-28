@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentFamily, FamilyContext } from '../../common/decorators/family-context.decorator';
@@ -26,5 +26,15 @@ export class LoansController {
     @Body() dto: CreateRepaymentDto,
   ) {
     return this.loans.record(fam, id, dto);
+  }
+
+  @Delete(':repayId')
+  @ApiOperation({ summary: 'Supprimer un remboursement (admin) — saisie erronée' })
+  remove(
+    @CurrentFamily() fam: FamilyContext,
+    @Param('id') id: string,
+    @Param('repayId') repayId: string,
+  ) {
+    return this.loans.remove(fam, id, repayId);
   }
 }

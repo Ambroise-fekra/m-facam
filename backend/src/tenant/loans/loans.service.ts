@@ -23,6 +23,32 @@ export class LoansService {
     return Number(row?.total ?? 0);
   }
 
+  /**
+   * Admin supprime un remboursement (saisie erronée, mauvaise devise, doublon).
+   * Si la suppression fait repasser le prêt sous le seuil "remboursé en
+   * totalité", on rouvre le prêt (status closed -> active).
+   */
+  async remove(fam: FamilyContext, eventId: string, repaymentId: string) {
+    if (!fam.isAdmin) throw new ForbiddenException('Réservé à l\'administrateur');
+    const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
+    const eventRepo = ds.getRepository(Event);
+    const repaymentRepo = ds.getRepository(LoanRepayment);
+    const r = await repaymentRepo.findOne({ where: { id: repaymentId, eventId } });
+    if (!r) throw new NotFoundException('Remboursement introuvable');
+    await repaymentRepo.delete(r.id);
+    // Si le prêt avait été clos suite à ce remboursement, on le rouvre.
+    const event = await eventRepo.findOne({ where: { id: eventId } });
+    if (event && event.status === 'closed' && event.type === 'loan') {
+      const newTotal = await this.totalRepaid(fam, eventId);
+      if (newTotal + 0.005 < Number(event.targetAmount)) {
+        event.status = 'active';
+        event.closedAt = null;
+        await eventRepo.save(event);
+      }
+    }
+    return { id: repaymentId, deleted: true };
+  }
+
   /** Repayments history (newest first) — visible only to the borrower and admins. */
   async list(fam: FamilyContext, eventId: string) {
     const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);

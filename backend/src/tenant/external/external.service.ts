@@ -45,6 +45,20 @@ export class ExternalService {
   }
 
   /**
+   * Admin supprime une contribution externe (saisie erronée, mauvaise devise,
+   * doublon). Le calcul du total de l'évènement se met à jour automatiquement.
+   */
+  async remove(fam: FamilyContext, eventId: string, contributionId: string) {
+    if (!fam.isAdmin) throw new ForbiddenException('Réservé à l\'administrateur');
+    const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
+    const repo = ds.getRepository(ExternalContribution);
+    const c = await repo.findOne({ where: { id: contributionId, eventId } });
+    if (!c) throw new NotFoundException('Contribution introuvable');
+    await repo.delete(c.id);
+    return { id: contributionId, deleted: true };
+  }
+
+  /**
    * Records a member's earmarked contribution to an external event.
    *  - Cas 1 (self) : pas de memberId dans le dto → on agit pour le membre
    *    authentifié. Pré-requis : actif, non bloqué, non décédé.

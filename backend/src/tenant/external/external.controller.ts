@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentFamily, FamilyContext } from '../../common/decorators/family-context.decorator';
@@ -26,5 +26,15 @@ export class ExternalController {
     @Body() dto: CreateExternalContributionDto,
   ) {
     return this.external.contribute(fam, id, dto);
+  }
+
+  @Delete(':contribId')
+  @ApiOperation({ summary: 'Supprimer une contribution externe (admin) — saisie erronée' })
+  remove(
+    @CurrentFamily() fam: FamilyContext,
+    @Param('id') id: string,
+    @Param('contribId') contribId: string,
+  ) {
+    return this.external.remove(fam, id, contribId);
   }
 }
