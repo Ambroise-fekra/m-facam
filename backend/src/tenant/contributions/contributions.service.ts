@@ -111,6 +111,43 @@ export class ContributionsService {
   }
 
   /**
+   * Admin supprime une cotisation à la caisse (saisie erronée, doublon,
+   * mauvaise devise, etc.). Garde-fou : si le membre a déjà utilisé une
+   * partie de ce crédit (allocations faites depuis), on refuse la
+   * suppression — sinon son solde deviendrait négatif.
+   */
+  async remove(fam: FamilyContext, id: string): Promise<{ id: string; deleted: boolean }> {
+    if (!fam.isAdmin) throw new ForbiddenException('Réservé à l\'administrateur');
+    const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
+    const repo = ds.getRepository(Contribution);
+    const c = await repo.findOne({ where: { id } });
+    if (!c) throw new NotFoundException('Cotisation introuvable');
+
+    // Vérifie que le solde du membre reste >= 0 après suppression.
+    // Solde = contributions completed - allocations.
+    const contributed = await repo
+      .createQueryBuilder('c')
+      .select('COALESCE(SUM(c.amount), 0)', 'total')
+      .where('c.member_id = :id AND c.status = :s', { id: c.memberId, s: 'completed' })
+      .getRawOne();
+    const allocated = await ds
+      .getRepository(Allocation)
+      .createQueryBuilder('a')
+      .select('COALESCE(SUM(a.amount), 0)', 'total')
+      .where('a.member_id = :id', { id: c.memberId })
+      .getRawOne();
+    const balance = Number(contributed?.total ?? 0) - Number(allocated?.total ?? 0);
+    const willGoNegative = c.status === 'completed' && balance - Number(c.amount) < -0.005;
+    if (willGoNegative) {
+      throw new BadRequestException(
+        `Suppression impossible : le membre a déjà utilisé une partie de ce crédit pour des allocations. Son solde serait négatif. Supprimez d'abord les allocations concernées.`,
+      );
+    }
+    await repo.delete(c.id);
+    return { id, deleted: true };
+  }
+
+  /**
    * Called when payment is captured — by the PayPal webhook, or by the local
    * mock checkout. No JWT here: the contributing member is derived from the
    * contribution row itself, so notifications still exclude the actor.
@@ -143,6 +180,19 @@ export class ContributionsService {
       payload: { contributionId: c.id, amount: c.amount },
     });
     return c;
+  }
+
+  /**
+   * Admin liste les cotisations d'un membre (pour pouvoir en supprimer une
+   * saisie erronée). Ordonné du plus récent au plus ancien.
+   */
+  async listForMember(fam: FamilyContext, memberId: string): Promise<Contribution[]> {
+    if (!fam.isAdmin) throw new ForbiddenException('Réservé à l\'administrateur');
+    const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
+    return ds.getRepository(Contribution).find({
+      where: { memberId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   /**

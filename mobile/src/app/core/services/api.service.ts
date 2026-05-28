@@ -331,6 +331,45 @@ export class ApiService {
     return this.http.post<{ id: string; amount: string }>(`${this.base}/allocations`, p);
   }
 
+  /** Admin : liste des allocations sur un évènement classique. */
+  listAllocations(eventId: string) {
+    return this.http.get<Array<{
+      id: string;
+      eventId: string;
+      memberId: string;
+      amount: string;
+      originalAmount?: string | null;
+      originalCurrency?: 'EUR' | 'XAF' | null;
+      createdAt: string;
+    }>>(`${this.base}/allocations?eventId=${encodeURIComponent(eventId)}`);
+  }
+
+  /** Admin : supprimer une allocation erronée. */
+  deleteAllocation(id: string) {
+    return this.http.delete<{ id: string; deleted: boolean }>(`${this.base}/allocations/${id}`);
+  }
+
+  /** Admin : liste des cotisations à la caisse d'un membre (pour correction). */
+  listMemberContributions(memberId: string) {
+    return this.http.get<Array<{
+      id: string;
+      memberId: string;
+      amount: string;
+      originalAmount?: string | null;
+      originalCurrency?: 'EUR' | 'XAF' | null;
+      status: string;
+      method?: string | null;
+      channel?: string | null;
+      createdAt: string;
+      completedAt?: string | null;
+    }>>(`${this.base}/contributions?memberId=${encodeURIComponent(memberId)}`);
+  }
+
+  /** Admin : supprimer une cotisation à la caisse erronée. */
+  deleteContribution(id: string) {
+    return this.http.delete<{ id: string; deleted: boolean }>(`${this.base}/contributions/${id}`);
+  }
+
   transactions(): Observable<Transaction[]> {
     return this.http.get<Transaction[]>(`${this.base}/transactions/me`);
   }

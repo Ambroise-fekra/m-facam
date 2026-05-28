@@ -13,6 +13,7 @@ import {
   IonSelectOption,
   IonTitle,
   IonToolbar,
+  AlertController,
   LoadingController,
   ToastController,
 } from '@ionic/angular/standalone';
@@ -129,6 +130,26 @@ import { FamilyEvent, Member } from '../../../core/models/api.models';
           <ion-button expand="block" fill="clear" (click)="router.navigateByUrl('/members')">
             ← Retour à la famille
           </ion-button>
+        </div>
+
+        <!-- Liste des cotisations caisse du membre (admin) : pour pouvoir corriger -->
+        <div class="manual-card" *ngIf="auth.isAdmin && memberContributions.length">
+          <h3 class="h-title">📜 Cotisations à la caisse</h3>
+          <p class="t-muted small">Cliquez sur 🗑️ pour supprimer une saisie erronée (mauvais montant, mauvaise devise, doublon).</p>
+          <div class="contrib-row" *ngFor="let c of memberContributions">
+            <div class="ctr-info">
+              <div class="ctr-name">
+                {{ currency.asOriginal(c.originalAmount, c.originalCurrency, c.amount) }}
+                <span *ngIf="c.status !== 'completed'" class="badge badge-proposed">{{ c.status }}</span>
+              </div>
+              <div class="ctr-meta">
+                {{ c.createdAt | date: 'dd/MM/yyyy' }}
+                <span *ngIf="c.method"> · {{ c.method }}</span>
+                <span *ngIf="c.channel && !c.method"> · {{ c.channel }}</span>
+              </div>
+            </div>
+            <button class="ctr-del" (click)="deleteContribution(c)" title="Supprimer (saisie erronée)">🗑️</button>
+          </div>
         </div>
 
         <!-- Versement manuel : admin only, jamais sur un decede -->
@@ -285,6 +306,13 @@ import { FamilyEvent, Member } from '../../../core/models/api.models';
       .manual-card .small { font-size: .82rem; margin: 4px 0 12px; }
       .manual-card .empty { color: #fbbf24; margin: 6px 0 0; }
       .nick { color: #cbd5e1; text-align: center; font-style: italic; margin: -2px 0 8px; }
+      .contrib-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+      .contrib-row:last-child { border-bottom: none; }
+      .ctr-info { flex: 1; min-width: 0; }
+      .ctr-name { color: #fff; font-weight: 600; font-size: .92rem; display: flex; align-items: center; gap: 6px; }
+      .ctr-meta { color: #94a3b8; font-size: .78rem; margin-top: 2px; }
+      .ctr-del { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.35); color: #f87171; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 1rem; }
+      .ctr-del:hover { background: rgba(248,113,113,.22); }
     `,
   ],
 })
@@ -294,6 +322,7 @@ export class MemberViewPage implements OnInit {
   private readonly whatsapp = inject(WhatsappService);
   private readonly loadingCtrl = inject(LoadingController);
   private readonly toastCtrl = inject(ToastController);
+  private readonly alertCtrl = inject(AlertController);
   readonly auth = inject(AuthService);
   readonly currency = inject(CurrencyService);
   readonly router = inject(Router);
@@ -303,6 +332,19 @@ export class MemberViewPage implements OnInit {
 
   /** Liste des évènements (chargée pour les sélecteurs "prêt actif" / "évènement externe"). */
   events: FamilyEvent[] = [];
+
+  /** Cotisations à la caisse de ce membre (admin only) — pour suppression d'erreur. */
+  memberContributions: Array<{
+    id: string;
+    memberId: string;
+    amount: string;
+    originalAmount?: string | null;
+    originalCurrency?: 'EUR' | 'XAF' | null;
+    status: string;
+    method?: string | null;
+    channel?: string | null;
+    createdAt: string;
+  }> = [];
 
   // --- Formulaire de versement manuel (admin) ---
   versType: '' | 'caisse' | 'loan' | 'external' = '';
@@ -346,6 +388,44 @@ export class MemberViewPage implements OnInit {
   private loadEventsIfAdmin() {
     if (!this.auth.isAdmin) return;
     this.api.events().subscribe((list) => (this.events = list));
+    // Charge aussi les cotisations caisse du membre (admin only).
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.api.listMemberContributions(id).subscribe({
+        next: (l) => (this.memberContributions = l),
+        error: () => (this.memberContributions = []),
+      });
+    }
+  }
+
+  async deleteContribution(c: { id: string; amount: string; originalAmount?: string | null; originalCurrency?: 'EUR' | 'XAF' | null }) {
+    const confirm = await this.alertCtrl.create({
+      header: 'Supprimer cette cotisation ?',
+      message:
+        `Voulez-vous supprimer la cotisation de ` +
+        `<strong>${this.currency.asOriginal(c.originalAmount, c.originalCurrency, c.amount)}</strong> ? ` +
+        `Refusé si le membre a déjà alloué ce crédit à un évènement (supprimez d'abord ces allocations).`,
+      buttons: [
+        { text: 'Annuler', role: 'cancel' },
+        { text: 'Supprimer', role: 'destructive' },
+      ],
+    });
+    await confirm.present();
+    const { role } = await confirm.onDidDismiss();
+    if (role !== 'destructive') return;
+    this.api.deleteContribution(c.id).subscribe({
+      next: async () => {
+        const t = await this.toastCtrl.create({ message: 'Cotisation supprimée', color: 'success', duration: 1800 });
+        await t.present();
+        this.loadEventsIfAdmin();
+      },
+      error: async (err: unknown) => {
+        const raw = (err as { error?: { message?: string | string[] } })?.error?.message;
+        const msg = Array.isArray(raw) ? raw.join(' ') : raw || 'Suppression impossible.';
+        const t = await this.toastCtrl.create({ message: String(msg), color: 'danger', duration: 4500 });
+        await t.present();
+      },
+    });
   }
 
   /** Prêts actifs où ce membre est l'emprunteur (et où le décaissement a eu lieu). */

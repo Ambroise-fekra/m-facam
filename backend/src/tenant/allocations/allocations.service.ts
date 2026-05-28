@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { TenantRoutingService } from '../../master/tenant/tenant-routing.service';
 import { FamilyContext } from '../../common/decorators/family-context.decorator';
 import { Allocation } from './allocation.entity';
@@ -82,5 +82,30 @@ export class AllocationsService {
       });
       return alloc;
     });
+  }
+
+  /** Liste des allocations d'un évènement (admin only) — pour gérer corrections. */
+  async listForEvent(fam: FamilyContext, eventId: string): Promise<Allocation[]> {
+    if (!fam.isAdmin) throw new ForbiddenException('Réservé à l\'administrateur');
+    const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
+    return ds.getRepository(Allocation).find({
+      where: { eventId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Admin supprime une allocation (saisie erronée, mauvais montant, etc.).
+   * Le solde du membre est automatiquement recalculé (somme contributions
+   * - somme allocations), donc rien à faire en plus.
+   */
+  async remove(fam: FamilyContext, id: string): Promise<{ id: string; deleted: boolean }> {
+    if (!fam.isAdmin) throw new ForbiddenException('Réservé à l\'administrateur');
+    const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
+    const repo = ds.getRepository(Allocation);
+    const alloc = await repo.findOne({ where: { id } });
+    if (!alloc) throw new NotFoundException('Allocation introuvable');
+    await repo.delete(alloc.id);
+    return { id, deleted: true };
   }
 }

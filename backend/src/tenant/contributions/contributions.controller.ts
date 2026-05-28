@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
@@ -40,5 +40,19 @@ export class ContributionsController {
   @ApiOperation({ summary: 'Aggregated cash level — no per-member detail' })
   cash(@CurrentFamily() fam: FamilyContext) {
     return this.contributions.globalCash(fam);
+  }
+
+  @Get()
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: "Liste des cotisations d'un membre (admin)" })
+  list(@CurrentFamily() fam: FamilyContext, @Query('memberId') memberId: string) {
+    return this.contributions.listForMember(fam, memberId);
+  }
+
+  @Delete(':id')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: "Supprimer une cotisation (admin) — saisie erronée" })
+  remove(@CurrentFamily() fam: FamilyContext, @Param('id') id: string) {
+    return this.contributions.remove(fam, id);
   }
 }

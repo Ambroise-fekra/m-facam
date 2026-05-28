@@ -135,6 +135,20 @@ import { ExternalContribution, FamilyEvent, LoanRepayment, Member, MyBalance, Vo
           <div class="facam-progress"><div class="facam-progress-fill time" [style.width.%]="timeRatio()"></div></div>
         </div>
 
+        <!-- Allocations existantes (admin) — pour pouvoir corriger les saisies erronées.
+             Parent ng-container exclut deja les loan, on n'a qu'a exclure external ici. -->
+        <div class="facam-card" *ngIf="event.type !== 'external' && auth.isAdmin && allocations.length">
+          <h3 class="h-title">📜 Allocations enregistrées</h3>
+          <div class="contrib-row" *ngFor="let a of allocations">
+            <div class="ctr-info">
+              <div class="ctr-name">{{ memberNameOf(a.memberId) }}</div>
+              <div class="ctr-meta">{{ a.createdAt | date: 'dd/MM/yyyy' }}</div>
+            </div>
+            <div class="ctr-amount">{{ currency.asOriginal(a.originalAmount, a.originalCurrency, a.amount) }}</div>
+            <button class="ctr-del" (click)="deleteAllocation(a)" title="Supprimer (saisie erronée)">🗑️</button>
+          </div>
+        </div>
+
         <!-- Classical event: allocate from share -->
         <div class="facam-card" *ngIf="event.type !== 'external'">
           <h3 class="h-title">Allouer depuis mon solde</h3>
@@ -446,6 +460,11 @@ export class EventDetailPage implements OnInit {
   /** Listes pour affichage et suppression admin. */
   extContributions: ExternalContribution[] = [];
   repayments: LoanRepayment[] = [];
+  allocations: Array<{
+    id: string; memberId: string; amount: string;
+    originalAmount?: string | null; originalCurrency?: 'EUR' | 'XAF' | null;
+    createdAt: string;
+  }> = [];
   /** Membres de la famille pour résoudre les noms des contributeurs/emprunteurs. */
   familyMembers: Member[] = [];
 
@@ -458,26 +477,46 @@ export class EventDetailPage implements OnInit {
   }
 
   private refreshAll() {
+    // reload() charge l'event de manière async puis appelle loadLists()
+    // dans son callback, pour que loadLists() ait le type d'évènement à dispo.
     this.reload();
     this.api.myBalance().subscribe((b) => (this.balance = b));
     this.api.familyInfo().subscribe((i) => (this.familyInfo = i));
     this.api.members().subscribe((list) => (this.familyMembers = list));
-    this.loadLists();
   }
 
-  /** Charge les listes externes/repayments selon le type d'évènement. */
+  /** Charge les listes externes/repayments/allocations selon le type d'évènement. */
   private loadLists() {
     const id = this.route.snapshot.paramMap.get('id');
-    if (!id) return;
-    // On charge les deux ; les *ngIf masquent ce qui n'est pas pertinent.
-    this.api.listExternalContributions(id).subscribe({
-      next: (l) => (this.extContributions = l),
-      error: () => (this.extContributions = []),
-    });
-    this.api.listRepayments(id).subscribe({
-      next: (l) => (this.repayments = l),
-      error: () => (this.repayments = []),
-    });
+    if (!id || !this.event) return;
+    // Charge uniquement la liste pertinente pour le type d'évènement, sinon
+    // les endpoints renvoient une 400 "Not a loan event" / similaire qui
+    // s'affiche comme un bandeau d'erreur intempestif.
+    if (this.event.type === 'external') {
+      this.api.listExternalContributions(id).subscribe({
+        next: (l) => (this.extContributions = l),
+        error: () => (this.extContributions = []),
+      });
+    } else {
+      this.extContributions = [];
+    }
+    if (this.event.type === 'loan') {
+      this.api.listRepayments(id).subscribe({
+        next: (l) => (this.repayments = l),
+        error: () => (this.repayments = []),
+      });
+    } else {
+      this.repayments = [];
+    }
+    // Allocations : seulement sur les évènements classiques (pas loan/external).
+    if (this.event.type !== 'loan' && this.event.type !== 'external' && this.auth.isAdmin) {
+      this.api.listAllocations(id).subscribe({
+        next: (l) => (this.allocations = l),
+        error: () => (this.allocations = []),
+      });
+    } else {
+      this.allocations = [];
+    }
   }
 
   memberNameOf(id: string): string {
@@ -504,6 +543,37 @@ export class EventDetailPage implements OnInit {
     this.api.deleteExternalContribution(this.event.id, c.id).subscribe({
       next: async () => {
         const t = await this.toastCtrl.create({ message: 'Contribution supprimée', color: 'success', duration: 1800 });
+        await t.present();
+        this.refreshAll();
+      },
+      error: async (err: unknown) => {
+        const raw = (err as { error?: { message?: string | string[] } })?.error?.message;
+        const msg = Array.isArray(raw) ? raw.join(' ') : raw || 'Suppression impossible.';
+        const t = await this.toastCtrl.create({ message: String(msg), color: 'danger', duration: 3500 });
+        await t.present();
+      },
+    });
+  }
+
+  async deleteAllocation(a: { id: string; memberId: string; amount: string; originalAmount?: string | null; originalCurrency?: 'EUR' | 'XAF' | null }) {
+    if (!this.event) return;
+    const confirm = await this.alertCtrl.create({
+      header: 'Supprimer cette allocation ?',
+      message:
+        `Voulez-vous supprimer l'allocation de <strong>${this.memberNameOf(a.memberId)}</strong> ` +
+        `(${this.currency.asOriginal(a.originalAmount, a.originalCurrency, a.amount)}) ? ` +
+        `Le solde du membre sera automatiquement restauré.`,
+      buttons: [
+        { text: 'Annuler', role: 'cancel' },
+        { text: 'Supprimer', role: 'destructive' },
+      ],
+    });
+    await confirm.present();
+    const { role } = await confirm.onDidDismiss();
+    if (role !== 'destructive') return;
+    this.api.deleteAllocation(a.id).subscribe({
+      next: async () => {
+        const t = await this.toastCtrl.create({ message: 'Allocation supprimée, solde restauré', color: 'success', duration: 1800 });
         await t.present();
         this.refreshAll();
       },
@@ -589,6 +659,9 @@ export class EventDetailPage implements OnInit {
     this.api.event(id).subscribe((e) => {
       this.event = e;
       this.myVote = e.myVote ?? null;
+      // Charger les listes auxiliaires APRÈS que le type d'event soit connu,
+      // pour ne déclencher que les bons endpoints.
+      this.loadLists();
     });
   }
 
