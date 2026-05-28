@@ -5,7 +5,8 @@ Application mobile de gestion d'une caisse de trésorerie familiale.
 - **Backend** : NestJS + TypeORM + PostgreSQL
 - **Mobile** : Ionic 7 + Angular 17 + Capacitor (Android / iOS)
 - **Architecture** : multi-tenant, une base PostgreSQL par famille
-- **Paiement** : PayPal (cotisations, allocations, versements responsables, abonnement)
+- **Paiements** : **PayPal** (cotisations, allocations, versements responsables, abonnement) + **Mobile Money via CinetPay** (Congo, FCFA — Phase 2)
+- **Multi-devise** : EUR (canonique) + FCFA BEAC (parité fixe 1 € = 655,957 FCFA), saisie et affichage dans la devise d'origine sans perte d'arrondi
 
 ## Vue d'ensemble
 
@@ -15,20 +16,24 @@ Chaque famille crée son espace via un abonnement annuel **20 €/an** (1 mois d
 
 | Domaine | Description |
 | --- | --- |
-| **Rôles** | Admin (création/gestion) + **chef de famille** (désigné, mêmes pouvoirs pour activer un membre et marquer un décès) ; affichés ensemble sur le dashboard avec leurs téléphones |
-| **Membres** | Créés par l'admin OU **déclarés par chaque parent** depuis son profil (descendance). Statuts : actif / inactif / 🚫 bloqué / 🕯️ décédé |
-| **Cotisations caisse** | Versements PayPal sur la caisse familiale, alimentant le solde personnel du membre |
-| **Évènements classiques** | Mariages, décès, projets, anniversaires, autres ; objectif facultatif + suggestion par membre, date, échéance, responsable |
-| **💰 Prêt à un membre** | Demandé par l'emprunteur, voté (emprunteur exclu), plafond 1/5 caisse, max 2 actifs ; remboursements par l'emprunteur uniquement ; blocage automatique en cas d'impayé |
-| **🎁 Évènement externe** | Cagnotte hors solidarité commune : cotisations ciblées qui ne touchent ni la part du membre ni la caisse globale |
+| **Rôles** | Admin (création/gestion) + **chef de famille** (désigné, mêmes pouvoirs pour activer un membre, marquer un décès, prolonger un évènement) ; affichés ensemble sur le dashboard avec leurs téléphones |
+| **Membres** | Créés par l'admin avec **email OU téléphone** OU déclarés par chaque parent depuis son profil (descendance + **conjoint(e)**). Champ **surnom** facultatif. Statuts : actif / inactif / 🚫 bloqué / 🕯️ décédé |
+| **Multi-familles** | Un même email peut appartenir à plusieurs familles (récupération d'identifiant renvoie tous les identifiants) |
+| **Cotisations caisse** | Versements **PayPal** (€) ou **Mobile Money** (FCFA, Congo) sur la caisse, alimentant le solde personnel ; **saisie manuelle admin** pour les versements hors-app (espèces, virement) |
+| **Évènements classiques** | Mariages, décès, projets, anniversaires ; objectif facultatif + suggestion par membre ; **réactivation possible** par admin/chef tant que le versement n'a pas été fait |
+| **💰 Prêt à un membre** | Voté (emprunteur exclu), plafond 1/5 caisse, max 2 actifs ; remboursements en € ou FCFA ; blocage automatique en cas d'impayé |
+| **🎁 Évènement externe** | Cagnotte hors solidarité commune ; cotisations ciblées qui ne touchent ni la part du membre ni la caisse globale |
 | **Vote** | Quorum 2/3 des actifs + majorité 2/3 des votants ; affichage explicite des règles avec ✅/❌ |
-| **Clôture** | À l'échéance, l'admin enregistre la remise au responsable (virement / espèces / chèque / PayPal + note) |
+| **Multi-devise** | Saisie en € **ou** FCFA sur cotisation, allocation, contribution externe, remboursement. Stockage canonique EUR + conservation de l'original (XAF/EUR) ; affichage fidèle dans la devise de paiement |
+| **Clôture & versement** | À l'échéance, l'admin remet le total au responsable (virement, espèces, chèque, **PayPal**, **Mobile Money**) avec rappel des coordonnées de paiement (PayPal email / numéro Mobile Money + opérateur) du responsable |
+| **Correction admin** | Suppression d'une cotisation, allocation, contribution externe, ou remboursement erroné — solde automatiquement recalculé |
 | **Confidentialité** | Chaque membre voit son solde et ses propres parts ; jamais celles des autres. Vote anonyme |
-| **Arbre généalogique** | Affichage par **couples** (père ❤️ mère + enfants), bordure colorée par sexe |
+| **Arbre généalogique** | Affichage par **couples** (père ❤️ mère + enfants), bordure colorée par sexe ; conjoint(e) déclarable par admin/chef même pour un décédé |
 | **Anniversaires** | Mois courant + suivant, défunts exclus par respect |
-| **Photos** | Avatar et logo famille avec **recadrage rond** (glisser/zoomer, modale tactile) |
-| **Notifications** | Cotisations, allocations, propositions, activations, clôtures, prêts impayés, rappels d'abonnement |
-| **Administration** | Identifiant famille, PayPal famille, WhatsApp, chef de famille, abonnement, blocage/déblocage |
+| **Photos** | Avatar et logo famille avec **recadrage rond** (glisser/zoomer) |
+| **Notifications** | Cotisations, allocations, propositions, activations, clôtures, versements manuels enregistrés par l'admin, prêts impayés, rappels d'abonnement |
+| **Administration** | Identifiant famille, PayPal + Mobile Money famille, WhatsApp, chef de famille, abonnement, blocage/déblocage |
+| **Sécurité** | L'app n'a **aucun code d'accès** PayPal / Mobile Money. L'argent reste sur les comptes gérés par la famille. Paiements adossés aux infrastructures **PayPal** et **CinetPay** |
 
 ## Architecture multi-tenant
 
