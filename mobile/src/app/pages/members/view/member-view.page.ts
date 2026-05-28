@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   IonBackButton,
@@ -7,13 +8,19 @@ import {
   IonButtons,
   IonContent,
   IonHeader,
+  IonInput,
+  IonSelect,
+  IonSelectOption,
   IonTitle,
   IonToolbar,
+  LoadingController,
+  ToastController,
 } from '@ionic/angular/standalone';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { CurrencyService } from '../../../core/services/currency.service';
 import { WhatsappService } from '../../../core/services/whatsapp.service';
-import { Member } from '../../../core/models/api.models';
+import { FamilyEvent, Member } from '../../../core/models/api.models';
 
 /**
  * Fiche membre en visualisation : reprend exactement les informations affichées
@@ -25,6 +32,7 @@ import { Member } from '../../../core/models/api.models';
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     RouterLink,
     IonHeader,
     IonToolbar,
@@ -32,6 +40,9 @@ import { Member } from '../../../core/models/api.models';
     IonBackButton,
     IonTitle,
     IonContent,
+    IonInput,
+    IonSelect,
+    IonSelectOption,
     IonButton,
   ],
   template: `
@@ -119,6 +130,75 @@ import { Member } from '../../../core/models/api.models';
             ← Retour à la famille
           </ion-button>
         </div>
+
+        <!-- Versement manuel : admin only, jamais sur un decede -->
+        <div class="manual-card" *ngIf="auth.isAdmin && !m.isDeceased">
+          <h3 class="h-title">💰 Enregistrer un versement (admin)</h3>
+          <p class="t-muted small">
+            Pour les versements reçus <strong>hors-app</strong> (espèces, virement direct, chèque…) à crediter à <strong>{{ m.firstName }}</strong>.
+          </p>
+
+          <label class="fld-label req">Type</label>
+          <ion-select class="fld" interface="alert" [(ngModel)]="versType" (ionChange)="onVersTypeChange()">
+            <ion-select-option value="caisse">💰 Cotisation à la caisse familiale</ion-select-option>
+            <ion-select-option value="loan">↩️ Remboursement de prêt</ion-select-option>
+            <ion-select-option value="external">🎉 Cotisation à un évènement externe</ion-select-option>
+          </ion-select>
+
+          <!-- Loan : selecteur du prêt actif où ce membre est emprunteur -->
+          <ng-container *ngIf="versType === 'loan'">
+            <label class="fld-label req">Prêt en cours</label>
+            <ion-select class="fld" interface="alert" [(ngModel)]="versEventId" placeholder="Choisir">
+              <ion-select-option *ngFor="let e of borrowerLoans()" [value]="e.id">
+                {{ e.title }} — reste {{ currency.eurXaf(remainingOf(e)) }}
+              </ion-select-option>
+            </ion-select>
+            <p class="t-muted small empty" *ngIf="!borrowerLoans().length">
+              Ce membre n'a aucun prêt actif en cours. Pas de remboursement à enregistrer.
+            </p>
+          </ng-container>
+
+          <!-- External : selecteur de l'évènement externe actif -->
+          <ng-container *ngIf="versType === 'external'">
+            <label class="fld-label req">Évènement externe</label>
+            <ion-select class="fld" interface="alert" [(ngModel)]="versEventId" placeholder="Choisir">
+              <ion-select-option *ngFor="let e of activeExternalEvents()" [value]="e.id">
+                {{ e.title }}
+              </ion-select-option>
+            </ion-select>
+            <p class="t-muted small empty" *ngIf="!activeExternalEvents().length">
+              Aucun évènement externe actif. Créez d'abord l'évènement.
+            </p>
+          </ng-container>
+
+          <ng-container *ngIf="versCanShowForm()">
+            <label class="fld-label req">Montant (€)</label>
+            <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="versAmount" placeholder="50"></ion-input>
+            <p class="t-muted small" *ngIf="versAmount > 0">
+              ≈ <strong>{{ currency.xaf(versAmount) }}</strong>
+            </p>
+
+            <label class="fld-label req">Mode de versement</label>
+            <ion-select class="fld" interface="alert" [(ngModel)]="versMethod">
+              <ion-select-option value="cash">💵 Espèces</ion-select-option>
+              <ion-select-option value="transfer">🏦 Virement bancaire</ion-select-option>
+              <ion-select-option value="cheque">📝 Chèque</ion-select-option>
+              <ion-select-option value="paypal">💳 PayPal (manuel)</ion-select-option>
+              <ion-select-option value="mobile_money">📱 Mobile Money</ion-select-option>
+              <ion-select-option value="other">Autre</ion-select-option>
+            </ion-select>
+
+            <label class="fld-label">Date du versement <span class="t-muted">(par défaut aujourd'hui)</span></label>
+            <ion-input class="fld" type="date" [(ngModel)]="versDate"></ion-input>
+
+            <label class="fld-label">Note</label>
+            <ion-input class="fld" [(ngModel)]="versNote" placeholder="Réf., contexte, remis lors de…"></ion-input>
+
+            <ion-button expand="block" class="ion-margin-top" color="success" [disabled]="!versCanSubmit()" (click)="submitManual(m)">
+              Enregistrer le versement
+            </ion-button>
+          </ng-container>
+        </div>
       </div>
     </ion-content>
 
@@ -188,6 +268,17 @@ import { Member } from '../../../core/models/api.models';
         text-decoration: none;
         cursor: pointer;
       }
+      .manual-card {
+        margin-top: 22px;
+        padding: 16px;
+        background: rgba(56,189,248,.08);
+        border: 1px solid rgba(56,189,248,.25);
+        border-radius: 16px;
+      }
+      .manual-card h3.h-title { color: #fff; font-size: 1.05rem; margin: 0 0 6px; }
+      .manual-card .small { font-size: .82rem; margin: 4px 0 12px; }
+      .manual-card .empty { color: #fbbf24; margin: 6px 0 0; }
+      .nick { color: #cbd5e1; text-align: center; font-style: italic; margin: -2px 0 8px; }
     `,
   ],
 })
@@ -195,18 +286,34 @@ export class MemberViewPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly whatsapp = inject(WhatsappService);
+  private readonly loadingCtrl = inject(LoadingController);
+  private readonly toastCtrl = inject(ToastController);
   readonly auth = inject(AuthService);
+  readonly currency = inject(CurrencyService);
   readonly router = inject(Router);
 
   member: Member | null = null;
   loadError = false;
 
+  /** Liste des évènements (chargée pour les sélecteurs "prêt actif" / "évènement externe"). */
+  events: FamilyEvent[] = [];
+
+  // --- Formulaire de versement manuel (admin) ---
+  versType: '' | 'caisse' | 'loan' | 'external' = '';
+  versEventId = '';
+  versAmount = 0;
+  versMethod: '' | 'cash' | 'transfer' | 'cheque' | 'paypal' | 'mobile_money' | 'other' = 'cash';
+  versDate = '';
+  versNote = '';
+
   ngOnInit() {
     this.load();
+    this.loadEventsIfAdmin();
   }
 
   ionViewWillEnter() {
     this.load();
+    this.loadEventsIfAdmin();
   }
 
   private load() {
@@ -226,6 +333,105 @@ export class MemberViewPage implements OnInit {
         }
       },
       error: () => (this.loadError = true),
+    });
+  }
+
+  private loadEventsIfAdmin() {
+    if (!this.auth.isAdmin) return;
+    this.api.events().subscribe((list) => (this.events = list));
+  }
+
+  /** Prêts actifs où ce membre est l'emprunteur (et où le décaissement a eu lieu). */
+  borrowerLoans(): FamilyEvent[] {
+    return this.events.filter(
+      (e) =>
+        e.type === 'loan' &&
+        e.status === 'active' &&
+        e.payoutStatus === 'done' &&
+        e.borrowerId === this.member?.id,
+    );
+  }
+
+  /** Évènements externes actifs (en collecte). */
+  activeExternalEvents(): FamilyEvent[] {
+    return this.events.filter((e) => e.type === 'external' && e.status === 'active');
+  }
+
+  /** Reste dû d'un prêt (targetAmount - totalCollected qui contient la somme des remboursements). */
+  remainingOf(e: FamilyEvent): number {
+    const target = parseFloat(e.targetAmount ?? '0');
+    const repaid = parseFloat(e.totalCollected ?? '0');
+    return Math.max(0, target - repaid);
+  }
+
+  onVersTypeChange() {
+    // Reset event sélectionné quand on change de type
+    this.versEventId = '';
+  }
+
+  versCanShowForm(): boolean {
+    if (this.versType === 'caisse') return true;
+    if (this.versType === 'loan') return !!this.versEventId;
+    if (this.versType === 'external') return !!this.versEventId;
+    return false;
+  }
+
+  versCanSubmit(): boolean {
+    return this.versCanShowForm() && this.versAmount > 0 && !!this.versMethod;
+  }
+
+  async submitManual(m: Member) {
+    if (!this.versCanSubmit()) return;
+    const loading = await this.loadingCtrl.create({ message: 'Enregistrement…' });
+    await loading.present();
+    const dateArg = this.versDate || undefined;
+    const noteArg = this.versNote || undefined;
+    const method = this.versMethod as 'cash' | 'transfer' | 'cheque' | 'paypal' | 'mobile_money' | 'other';
+
+    const obs =
+      this.versType === 'caisse'
+        ? this.api.recordManualContribution({
+            memberId: m.id,
+            amount: this.versAmount,
+            method,
+            note: noteArg,
+            dateContributed: dateArg,
+          })
+        : this.versType === 'loan'
+        ? this.api.recordRepayment(this.versEventId, this.versAmount, method, noteArg, dateArg)
+        : this.api.contributeExternal(
+            this.versEventId,
+            this.versAmount,
+            method,
+            noteArg,
+            m.id,
+            dateArg,
+          );
+
+    obs.subscribe({
+      next: async () => {
+        await loading.dismiss();
+        const t = await this.toastCtrl.create({
+          message: `Versement de ${this.versAmount} € enregistré pour ${m.firstName}`,
+          color: 'success',
+          duration: 2500,
+        });
+        await t.present();
+        // Reset
+        this.versAmount = 0;
+        this.versEventId = '';
+        this.versNote = '';
+        this.versDate = '';
+        // Reload events to refresh remaining-due on loans
+        this.loadEventsIfAdmin();
+      },
+      error: async (err: unknown) => {
+        await loading.dismiss();
+        const raw = (err as { error?: { message?: string | string[] } })?.error?.message;
+        const msg = Array.isArray(raw) ? raw.join(' ') : raw || 'Échec de l\'enregistrement.';
+        const t = await this.toastCtrl.create({ message: String(msg), color: 'danger', duration: 3500 });
+        await t.present();
+      },
     });
   }
 

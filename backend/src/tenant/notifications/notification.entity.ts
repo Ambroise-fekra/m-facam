@@ -12,6 +12,7 @@ import { Member } from '../members/member.entity';
 export type NotificationType =
   | 'event_created'
   | 'contribution_received'
+  | 'contribution_recorded'
   | 'allocation_recorded'
   | 'birthday'
   | 'trial_reminder'

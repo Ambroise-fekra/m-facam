@@ -40,6 +40,21 @@ export class Contribution {
   @Column({ type: 'varchar', length: 16, nullable: true })
   channel: 'paypal' | 'mobile_money' | null;
 
+  /**
+   * Mode de versement réellement utilisé (transfer | cash | cheque | paypal |
+   * mobile_money | other). Renseigné principalement pour les cotisations
+   * enregistrées manuellement par l'admin (versement hors-app).
+   */
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  method: string | null;
+
+  /**
+   * Qui a enregistré la cotisation : l'admin pour les saisies manuelles,
+   * le membre lui-même pour les checkouts in-app.
+   */
+  @Column({ name: 'recorded_by', type: 'uuid', nullable: true })
+  recordedById: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

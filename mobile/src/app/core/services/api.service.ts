@@ -157,6 +157,21 @@ export class ApiService {
     );
   }
 
+  /**
+   * Admin : enregistre manuellement une cotisation à la caisse pour un membre
+   * (versement reçu hors-app en espèces, virement direct, chèque, etc.).
+   */
+  recordManualContribution(p: {
+    memberId: string;
+    amount: number;
+    method: 'transfer' | 'cash' | 'cheque' | 'paypal' | 'mobile_money' | 'other';
+    note?: string;
+    /** YYYY-MM-DD pour backdater le versement. */
+    dateContributed?: string;
+  }) {
+    return this.http.post<{ id: string; amount: string }>(`${this.base}/contributions/manual`, p);
+  }
+
   events(): Observable<FamilyEvent[]> {
     return this.http.get<FamilyEvent[]>(`${this.base}/events`);
   }
@@ -205,9 +220,15 @@ export class ApiService {
   }
 
   // ---- Loans ----
-  recordRepayment(eventId: string, amount: number, method?: string, note?: string) {
+  recordRepayment(
+    eventId: string,
+    amount: number,
+    method?: string,
+    note?: string,
+    dateContributed?: string,
+  ) {
     return this.http.post<LoanRepayment>(`${this.base}/events/${eventId}/repayments`, {
-      amount, method, note,
+      amount, method, note, dateContributed,
     });
   }
 
@@ -216,8 +237,19 @@ export class ApiService {
   }
 
   // ---- External events ----
-  contributeExternal(eventId: string, amount: number, method?: string, note?: string) {
-    return this.http.post(`${this.base}/events/${eventId}/external-contributions`, { amount, method, note });
+  contributeExternal(
+    eventId: string,
+    amount: number,
+    method?: string,
+    note?: string,
+    memberId?: string,
+    dateContributed?: string,
+  ) {
+    return this.http.post(`${this.base}/events/${eventId}/external-contributions`, {
+      amount, method, note,
+      ...(memberId ? { memberId } : {}),
+      ...(dateContributed ? { dateContributed } : {}),
+    });
   }
 
   listExternalContributions(eventId: string) {

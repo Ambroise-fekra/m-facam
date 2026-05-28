@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
 export class CreateExternalContributionDto {
   @IsNumber()
@@ -13,4 +13,18 @@ export class CreateExternalContributionDto {
   @IsString()
   @MaxLength(255)
   note?: string;
+
+  /**
+   * Optionnel : id du membre pour qui on enregistre la contribution. Réservé
+   * à l'admin (versement hors-app à crediter à un autre membre). Sans cette
+   * valeur, on agit au nom du membre authentifié.
+   */
+  @IsOptional()
+  @IsUUID()
+  memberId?: string;
+
+  /** Date du versement (YYYY-MM-DD ou ISO complet). Admin only — par défaut maintenant. */
+  @IsOptional()
+  @IsString()
+  dateContributed?: string;
 }

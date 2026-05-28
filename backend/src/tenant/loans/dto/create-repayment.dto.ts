@@ -13,4 +13,9 @@ export class CreateRepaymentDto {
   @IsString()
   @MaxLength(255)
   note?: string;
+
+  /** Date du remboursement (YYYY-MM-DD ou ISO complet). Admin only — backdating. */
+  @IsOptional()
+  @IsString()
+  dateContributed?: string;
 }

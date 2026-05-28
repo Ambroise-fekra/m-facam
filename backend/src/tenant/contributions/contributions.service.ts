@@ -1,11 +1,13 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { TenantRoutingService } from '../../master/tenant/tenant-routing.service';
 import { FamilyContext } from '../../common/decorators/family-context.decorator';
 import { Contribution } from './contribution.entity';
 import { Allocation } from '../allocations/allocation.entity';
 import { Event } from '../events/event.entity';
 import { LoanRepayment } from '../loans/loan-repayment.entity';
+import { Member } from '../members/member.entity';
 import { CreateContributionDto } from './dto/create-contribution.dto';
+import { RecordManualContributionDto } from './dto/record-manual-contribution.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../../payments/payment-provider.interface';
 
@@ -43,6 +45,57 @@ export class ContributionsService {
       amountEur: dto.amount,
     });
     return { contributionId: contribution.id, approveUrl: checkout.approveUrl };
+  }
+
+  /**
+   * Admin / chef de famille enregistre manuellement une cotisation reçue
+   * hors-app (espèces, virement direct, chèque) au profit d'un membre. La
+   * cotisation est créée directement en status='completed', avec method,
+   * note et date renseignés. Le membre est notifié.
+   */
+  async recordManual(fam: FamilyContext, dto: RecordManualContributionDto): Promise<Contribution> {
+    if (!fam.isAdmin) {
+      throw new ForbiddenException('Réservé à l\'administrateur');
+    }
+    const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
+    const memberRepo = ds.getRepository(Member);
+    const target = await memberRepo.findOne({ where: { id: dto.memberId } });
+    if (!target) throw new NotFoundException('Membre introuvable');
+    // Pas de cotisation pour un décédé : l'admin doit utiliser la fiche
+    // d'un membre vivant pour les versements hors-app.
+    if (target.isDeceased) {
+      throw new BadRequestException('Impossible d\'enregistrer une cotisation pour un membre décédé');
+    }
+    const repo = ds.getRepository(Contribution);
+    const c = repo.create({
+      memberId: target.id,
+      amount: dto.amount.toFixed(2),
+      status: 'completed',
+      method: dto.method,
+      channel: null,
+      recordedById: fam.memberId,
+      completedAt: new Date(),
+    });
+    // Backdating éventuel : on autorise l'admin à dater le versement dans le
+    // passé. TypeORM permet de surcharger @CreateDateColumn si on fournit
+    // explicitement createdAt à la création.
+    if (dto.dateContributed) {
+      const d = new Date(dto.dateContributed);
+      if (!isNaN(d.getTime())) {
+        c.createdAt = d;
+        c.completedAt = d;
+      }
+    }
+    const saved = await repo.save(c);
+
+    // Notifier UNIQUEMENT le membre crédité (notification personnelle, pas
+    // un broadcast à toute la famille).
+    await this.notifications.notifyOne(fam, target.id, 'contribution_recorded', {
+      title: 'Cotisation enregistrée pour vous',
+      body: `L'administrateur a enregistré votre versement de ${saved.amount} € (${dto.method})${dto.note ? ' — ' + dto.note : ''}.`,
+      payload: { contributionId: saved.id, amount: saved.amount, method: dto.method },
+    });
+    return saved;
   }
 
   /**

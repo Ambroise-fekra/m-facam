@@ -1,9 +1,11 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/guards/admin.guard';
 import { CurrentFamily, FamilyContext } from '../../common/decorators/family-context.decorator';
 import { ContributionsService } from './contributions.service';
 import { CreateContributionDto } from './dto/create-contribution.dto';
+import { RecordManualContributionDto } from './dto/record-manual-contribution.dto';
 
 @ApiTags('contributions')
 @ApiBearerAuth()
@@ -16,6 +18,16 @@ export class ContributionsController {
   @ApiOperation({ summary: 'Start a PayPal contribution — returns the approval URL' })
   start(@CurrentFamily() fam: FamilyContext, @Body() dto: CreateContributionDto) {
     return this.contributions.startContribution(fam, dto);
+  }
+
+  @Post('manual')
+  @UseGuards(AdminGuard)
+  @ApiOperation({
+    summary:
+      'Enregistrer manuellement une cotisation à la caisse pour un membre (admin) — versement hors-app (espèces, virement, etc.).',
+  })
+  recordManual(@CurrentFamily() fam: FamilyContext, @Body() dto: RecordManualContributionDto) {
+    return this.contributions.recordManual(fam, dto);
   }
 
   @Get('me/balance')

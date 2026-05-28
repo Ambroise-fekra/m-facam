@@ -44,9 +44,13 @@ export class ExternalService {
   }
 
   /**
-   * Records a member's earmarked contribution to an external event. The caller
-   * (the contributing member) must be active, not blocked, not deceased.
-   * Money is NOT added to the caisse nor to the member's share.
+   * Records a member's earmarked contribution to an external event.
+   *  - Cas 1 (self) : pas de memberId dans le dto → on agit pour le membre
+   *    authentifié. Pré-requis : actif, non bloqué, non décédé.
+   *  - Cas 2 (admin) : memberId fourni → on enregistre pour un autre membre
+   *    (cas du versement hors-app à crediter, par ex. en espèces). L'admin
+   *    peut aussi backdater via dateContributed.
+   *  Money is NOT added to the caisse nor to the member's share.
    */
   async contribute(fam: FamilyContext, eventId: string, dto: CreateExternalContributionDto) {
     const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
@@ -58,20 +62,38 @@ export class ExternalService {
     if (event.status !== 'active') {
       throw new BadRequestException('Les contributions ne sont possibles que lorsque l\'évènement est actif');
     }
-    const me = await ds.getRepository(Member).findOne({ where: { id: fam.memberId } });
-    if (!me || !me.isActive) throw new ForbiddenException('Membre inactif');
-    if (me.isDeceased) throw new ForbiddenException('Membre décédé');
-    if (me.isBlocked) throw new ForbiddenException('Compte bloqué');
+
+    const onBehalf = !!dto.memberId && dto.memberId !== fam.memberId;
+    if (onBehalf && !fam.isAdmin) {
+      throw new ForbiddenException('Seul l\'administrateur peut enregistrer une contribution pour un autre membre');
+    }
+    const targetId = dto.memberId ?? fam.memberId;
+    const target = await ds.getRepository(Member).findOne({ where: { id: targetId } });
+    if (!target) throw new NotFoundException('Membre introuvable');
+    // Les contraintes "actif / non bloqué / non décédé" ne s'appliquent que
+    // lors d'une auto-contribution. L'admin peut crediter n'importe quel membre
+    // (utile pour les versements re-tracés a posteriori).
+    if (!onBehalf) {
+      if (!target.isActive) throw new ForbiddenException('Membre inactif');
+      if (target.isDeceased) throw new ForbiddenException('Membre décédé');
+      if (target.isBlocked) throw new ForbiddenException('Compte bloqué');
+    } else if (target.isDeceased) {
+      throw new BadRequestException('Impossible d\'enregistrer une contribution pour un membre décédé');
+    }
 
     const repo = ds.getRepository(ExternalContribution);
     const c = repo.create({
       eventId,
-      memberId: fam.memberId,
+      memberId: targetId,
       amount: dto.amount.toFixed(2),
       method: dto.method ?? null,
       note: dto.note ?? null,
       recordedById: fam.memberId,
     });
+    if (onBehalf && dto.dateContributed) {
+      const d = new Date(dto.dateContributed);
+      if (!isNaN(d.getTime())) c.createdAt = d;
+    }
     return repo.save(c);
   }
 }

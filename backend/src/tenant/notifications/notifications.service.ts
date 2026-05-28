@@ -33,6 +33,29 @@ export class NotificationsService {
   }
 
   /**
+   * Crée une notification pour un membre précis (l'inverse du broadcast).
+   * Utilisé par ex. quand l'admin enregistre manuellement une cotisation
+   * pour ce membre.
+   */
+  async notifyOne(
+    fam: FamilyContext,
+    memberId: string,
+    type: NotificationType,
+    payload: BroadcastPayload,
+  ): Promise<void> {
+    const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
+    const repo = ds.getRepository(Notification);
+    const row = repo.create({
+      memberId,
+      type,
+      title: payload.title,
+      body: payload.body,
+      payload: payload.payload ?? null,
+    });
+    await repo.save(row);
+  }
+
+  /**
    * Persists one notification per family member (excluding the actor) for a
    * given event. FCM push dispatch is delegated to a follow-up worker job.
    */

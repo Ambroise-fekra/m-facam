@@ -77,6 +77,11 @@ export class LoansService {
       note: dto.note ?? null,
       recordedById: fam.memberId,
     });
+    // Backdating éventuel par l'admin (versement reçu il y a quelques jours).
+    if (fam.isAdmin && dto.dateContributed) {
+      const d = new Date(dto.dateContributed);
+      if (!isNaN(d.getTime())) r.createdAt = d;
+    }
     await repaymentRepo.save(r);
 
     const newTotal = already + dto.amount;
