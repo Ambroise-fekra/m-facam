@@ -161,19 +161,25 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
       .fam-phone.muted { color: #64748b; font-weight: 400; }
       .no-chief a { color: var(--facam-accent); cursor: pointer; text-decoration: underline; }
       .byline { color: #94a3b8; font-size: .78rem; margin: 0 0 16px; }
-      .cash-card { background: var(--facam-gradient-soft); border: 1px solid rgba(99,102,241,.3); border-radius: 22px; padding: 22px; }
-      .cash-card .label { display: block; color: #cbd5e1; font-size: .85rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+      /* Carte caisse: padding plus serre + label/montants empiles sur 2 lignes
+         pour eviter que la double devise (EUR + FCFA) ne pousse les boutons
+         d'action hors ecran. */
+      .cash-card { background: var(--facam-gradient-soft); border: 1px solid rgba(99,102,241,.3); border-radius: 22px; padding: 16px 18px; }
+      .cash-card .label { display: block; color: #cbd5e1; font-size: .85rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
       .fam-count { color: #94a3b8; font-weight: 500; font-size: .92rem; }
       .fam-count strong { color: #fff; }
-      .contributors { color: #cbd5e1; font-size: .85rem; margin: 4px 0 0; }
+      .contributors { color: #cbd5e1; font-size: .82rem; margin: 4px 0 0; }
       .contributors strong { color: var(--facam-accent); }
-      .loans-out { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.30); color: #fde68a; }
-      .loans-out strong { color: #fbbf24; font-size: 1.15rem; }
-      .loans-note { color: #94a3b8; font-size: .78rem; margin: 4px 2px 0; line-height: 1.4; }
-      .myshare { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; color: #e2e8f0; }
-      .myshare strong { color: #fff; font-size: 1.25rem; font-weight: 800; }
-      .myshare.sub { margin-top: 8px; color: #94a3b8; font-size: .85rem; }
-      .myshare.sub strong { font-size: .95rem; color: #cbd5e1; font-weight: 600; }
+      .loans-out { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.30); color: #fde68a; }
+      .loans-out strong { color: #fbbf24; font-size: 1rem; }
+      .loans-note { color: #94a3b8; font-size: .76rem; margin: 4px 2px 0; line-height: 1.4; }
+      /* "Votre part" : label sur la 1ere ligne, montant sur la 2e ligne. */
+      .myshare { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; margin-top: 12px; color: #e2e8f0; }
+      .myshare > span { font-size: .82rem; color: #cbd5e1; }
+      .myshare strong { color: #fff; font-size: 1.05rem; font-weight: 800; }
+      .myshare.sub { margin-top: 6px; color: #94a3b8; font-size: .8rem; }
+      .myshare.sub > span { font-size: .78rem; }
+      .myshare.sub strong { font-size: .88rem; color: #cbd5e1; font-weight: 600; }
       .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0; }
       .action { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 14px 6px; text-align: center; color: #fff; cursor: pointer; }
       .action ion-icon { font-size: 1.7rem; color: var(--facam-accent); }

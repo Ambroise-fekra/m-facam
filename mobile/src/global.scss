@@ -94,14 +94,17 @@ ion-textarea.fld-light {
 }
 
 /* ===== Balance hero ===== */
+/* Reduit de 2.8rem -> 1.9rem pour faire tenir "X € (~Y FCFA)" sur une ligne
+   et eviter que les boutons du dashboard sortent hors ecran. */
 .facam-balance-amount {
-  font-size: 2.8rem;
+  font-size: 1.9rem;
   font-weight: 800;
   background: var(--facam-amount-gradient);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  line-height: 1.1;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 /* ===== Progress bar ===== */

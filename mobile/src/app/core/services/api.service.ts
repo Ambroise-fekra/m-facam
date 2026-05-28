@@ -257,6 +257,8 @@ export class ApiService {
    *  - sinon → on crée un nouveau membre (inactif) avec firstName/lastName/gender requis.
    */
   declareSpouse(p: {
+    /** Id du membre dont on déclare le conjoint (admin/chef seulement, sinon self). */
+    targetMemberId?: string;
     spouseId?: string;
     firstName?: string;
     lastName?: string;

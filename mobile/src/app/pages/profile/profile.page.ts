@@ -153,11 +153,15 @@ import { Member } from '../../core/models/api.models';
         </ion-button>
       </form>
 
-      <!-- Mon/Ma conjoint(e) : déclarable uniquement sur SON PROPRE profil. -->
-      <div class="facam-card kids" *ngIf="isSelf">
-        <h3 class="h-title">💍 Mon/Ma conjoint(e)</h3>
-        <p class="t-muted small">
+      <!-- Conjoint(e) : éditable par le membre lui-même, ou par admin/chef (même
+           pour un membre décédé, dans le cadre de l'arbre généalogique). -->
+      <div class="facam-card kids" *ngIf="isSelf || canMarkDeceased()">
+        <h3 class="h-title">💍 {{ isSelf ? 'Mon/Ma' : 'Conjoint(e) de ' + memberDisplayName() }}</h3>
+        <p class="t-muted small" *ngIf="isSelf">
           Liez votre conjoint(e). Si c'est un membre déjà présent dans la famille, sélectionnez-le. Sinon créez-le ici (il/elle sera <strong>inactif/ve</strong> ; l'admin ou le chef de famille pourra l'activer ensuite).
+        </p>
+        <p class="t-muted small" *ngIf="!isSelf">
+          En tant qu'admin / chef de famille vous pouvez renseigner le/la conjoint(e) de ce membre, y compris s'il/elle est décédé(e), pour enrichir l'arbre généalogique.
         </p>
 
         <div class="kid" *ngIf="currentSpouse() as sp">
@@ -347,7 +351,12 @@ export class ProfilePage implements OnInit {
     return this.members.find((m) => m.id === me.spouseId) ?? null;
   }
 
-  /** Membres candidats pour le lien conjoint : exclu moi-même, mes parents, mes enfants. */
+  /**
+   * Membres candidats pour le lien conjoint : exclu le membre cible lui-même,
+   * ses parents directs, ses enfants. Les décédés sont exclus quand le membre
+   * cible agit lui-même (= conjoint ACTUEL), mais inclus quand un admin/chef
+   * édite la fiche d'un autre (= lien historique possible).
+   */
   spouseCandidates(): Member[] {
     const me = this.members.find((m) => m.id === this.targetId);
     const myChildrenIds = new Set(
@@ -358,12 +367,19 @@ export class ProfilePage implements OnInit {
     return this.members
       .filter((m) =>
         m.id !== this.targetId &&
-        !m.isDeceased &&
+        (this.isSelf ? !m.isDeceased : true) &&
         m.id !== me?.fatherId &&
         m.id !== me?.motherId &&
         !myChildrenIds.has(m.id),
       )
       .sort((a, b) => a.firstName.localeCompare(b.firstName));
+  }
+
+  /** Nom complet du membre cible (pour le titre quand l'admin agit pour quelqu'un d'autre). */
+  memberDisplayName(): string {
+    const m = this.members.find((x) => x.id === this.targetId);
+    if (!m) return '';
+    return `${m.firstName} ${m.lastName}`;
   }
 
   async addSpouse() {
@@ -372,11 +388,14 @@ export class ProfilePage implements OnInit {
     if (!usingExisting && this.spouseForm.invalid) return;
     const loading = await this.loadingCtrl.create({ message: 'Liaison…' });
     await loading.present();
+    // Quand on agit pour quelqu'un d'autre (admin/chef), on transmet targetMemberId.
+    const targetArg = this.isSelf ? {} : { targetMemberId: this.targetId };
     this.api
       .declareSpouse(
         usingExisting
-          ? { spouseId: this.pickedSpouseId }
+          ? { ...targetArg, spouseId: this.pickedSpouseId }
           : {
+              ...targetArg,
               firstName: v.firstName,
               lastName: v.lastName,
               nickname: v.nickname || undefined,

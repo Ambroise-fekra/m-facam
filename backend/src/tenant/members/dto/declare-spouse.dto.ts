@@ -11,6 +11,17 @@ import { IsEmail, IsEnum, IsOptional, IsString, Length } from 'class-validator';
  * membres. Un membre n'a qu'un seul conjoint à la fois (remariage = écrasement).
  */
 export class DeclareSpouseDto {
+  /**
+   * Optionnel : id du membre POUR LEQUEL on déclare un conjoint. Réservé à
+   * l'admin ou au chef de famille (qui peuvent renseigner le conjoint d'un
+   * autre membre, y compris décédé, pour l'arbre généalogique). Sans cette
+   * valeur, on agit sur le membre authentifié (= déclaration de son propre
+   * conjoint).
+   */
+  @IsOptional()
+  @IsString()
+  targetMemberId?: string;
+
   /** Si fourni, on lie un membre existant — les autres champs sont ignorés. */
   @IsOptional()
   @IsString()

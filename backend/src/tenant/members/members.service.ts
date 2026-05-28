@@ -307,32 +307,54 @@ export class MembersService {
   }
 
   /**
-   * Tout membre actif peut déclarer son conjoint actuel. Deux cas :
-   *  - Le conjoint existe déjà dans la famille → on passe `spouseId`. La
-   *    relation est positionnée des deux côtés (bidirectionnelle). Si l'un
-   *    des deux était déjà marié à quelqu'un d'autre, l'ancien lien est
-   *    rompu (un seul conjoint à la fois).
-   *  - Sinon, on le crée comme nouveau membre (inactif, sans login), puis
-   *    on positionne le lien des deux côtés.
+   * Tout membre actif peut déclarer son conjoint actuel.
+   *  - Cas 1 (self) : pas de targetMemberId → on agit sur le membre authentifié.
+   *    Pré-requis : membre actif, non décédé, non bloqué.
+   *  - Cas 2 (admin/chef) : targetMemberId fourni → on agit sur n'importe quel
+   *    membre, y compris décédé (utile pour reconstituer l'arbre généalogique).
+   *
+   * Pour les deux cas :
+   *  - Si `spouseId` est fourni, on lie un membre existant. La relation est
+   *    positionnée des deux côtés (bidirectionnelle). Si l'un était déjà marié
+   *    à quelqu'un d'autre, l'ancien lien est rompu (un seul conjoint à la fois).
+   *  - Sinon on crée le conjoint comme nouveau membre (inactif, sans login),
+   *    puis on positionne le lien des deux côtés.
    */
   async declareSpouse(
     fam: FamilyContext,
     dto: DeclareSpouseDto,
   ): Promise<{ id: string; spouseId: string }> {
     const repo = await this.repo(fam.identifier);
-    const me = await repo.findOne({ where: { id: fam.memberId } });
-    if (!me || !me.isActive) throw new ForbiddenException('Membre inactif');
-    if (me.isDeceased) throw new ForbiddenException('Membre décédé');
-    if (me.isBlocked) throw new ForbiddenException('Votre compte est bloqué');
+    const isAdminOrChief = await this.isAdminOrChief(fam);
+    const onBehalf = !!dto.targetMemberId && dto.targetMemberId !== fam.memberId;
+    if (onBehalf && !isAdminOrChief) {
+      throw new ForbiddenException(
+        'Seul l\'administrateur ou le chef de famille peut déclarer le conjoint d\'un autre membre.',
+      );
+    }
+    const meId = dto.targetMemberId ?? fam.memberId;
+    const me = await repo.findOne({ where: { id: meId } });
+    if (!me) throw new NotFoundException('Membre introuvable');
+    // Si on agit sur soi-même (sans targetMemberId), les contraintes "actif /
+    // non décédé / non bloqué" s'appliquent. L'admin / chef agissant pour un
+    // tiers peut toucher un décédé (cas d'usage : reconstituer l'arbre).
+    if (!onBehalf) {
+      if (!me.isActive) throw new ForbiddenException('Membre inactif');
+      if (me.isDeceased) throw new ForbiddenException('Membre décédé');
+      if (me.isBlocked) throw new ForbiddenException('Votre compte est bloqué');
+    }
 
     let spouse: Member | null = null;
     if (dto.spouseId) {
       spouse = await repo.findOne({ where: { id: dto.spouseId } });
       if (!spouse) throw new NotFoundException('Membre conjoint introuvable');
       if (spouse.id === me.id) {
-        throw new BadRequestException('Vous ne pouvez pas vous déclarer comme votre propre conjoint(e).');
+        throw new BadRequestException('Un membre ne peut pas être son/sa propre conjoint(e).');
       }
-      if (spouse.isDeceased) {
+      // Un décédé peut être lié à un autre membre (historique généalogique).
+      // Seul l'auto-déclaration par un membre actif refuse le lien à un décédé
+      // (interprété comme "conjoint actuel"). Pour l'admin/chef, on accepte.
+      if (spouse.isDeceased && !onBehalf) {
         throw new BadRequestException('Ce membre est décédé — vous ne pouvez pas le déclarer comme conjoint(e) actuel(le).');
       }
     } else {
