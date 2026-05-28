@@ -31,6 +31,9 @@ export class ContributionsService {
       memberId: fam.memberId,
       amount: dto.amount.toFixed(2),
       status: 'pending',
+      // Canal choisi par le membre (paypal | mobile_money). En phase 1 on
+      // l'enregistre pour info ; en phase 2 il routera vers le bon provider.
+      channel: dto.channel ?? null,
     });
     await repo.save(contribution);
 

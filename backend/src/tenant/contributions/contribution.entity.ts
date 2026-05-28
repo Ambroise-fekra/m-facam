@@ -36,6 +36,10 @@ export class Contribution {
   @Column({ type: 'varchar', length: 16, default: 'pending' })
   status: ContributionStatus;
 
+  /** Canal de paiement choisi par le membre ('paypal' | 'mobile_money'). */
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  channel: 'paypal' | 'mobile_money' | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

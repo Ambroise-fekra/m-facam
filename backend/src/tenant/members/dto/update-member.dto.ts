@@ -70,4 +70,10 @@ export class UpdateMemberDto {
   @IsOptional()
   @IsEnum(['paypal', 'mobile_money', ''])
   preferredChannel?: 'paypal' | 'mobile_money' | '';
+
+  /** Surnom / petit nom familier (facultatif). '' pour effacer. */
+  @IsOptional()
+  @IsString()
+  @Length(0, 80)
+  nickname?: string;
 }

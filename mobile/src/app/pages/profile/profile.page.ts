@@ -63,6 +63,9 @@ import { Member } from '../../core/models/api.models';
         <label class="fld-label req">Nom</label>
         <ion-input class="fld" formControlName="lastName" placeholder="DUPONT"></ion-input>
 
+        <label class="fld-label">Surnom <span class="t-muted">(petit nom dans la famille)</span></label>
+        <ion-input class="fld" formControlName="nickname" placeholder="ex : Tonton, Bébé…"></ion-input>
+
         <label class="fld-label">Téléphone</label>
         <ion-input class="fld" type="tel" formControlName="phone" placeholder="+33 6 …"></ion-input>
 
@@ -150,6 +153,60 @@ import { Member } from '../../core/models/api.models';
         </ion-button>
       </form>
 
+      <!-- Mon/Ma conjoint(e) : déclarable uniquement sur SON PROPRE profil. -->
+      <div class="facam-card kids" *ngIf="isSelf">
+        <h3 class="h-title">💍 Mon/Ma conjoint(e)</h3>
+        <p class="t-muted small">
+          Liez votre conjoint(e). Si c'est un membre déjà présent dans la famille, sélectionnez-le. Sinon créez-le ici (il/elle sera <strong>inactif/ve</strong> ; l'admin ou le chef de famille pourra l'activer ensuite).
+        </p>
+
+        <div class="kid" *ngIf="currentSpouse() as sp">
+          <span class="gender">{{ sp.gender === 'M' ? '♂' : sp.gender === 'F' ? '♀' : '⚪' }}</span>
+          <span class="name">{{ sp.firstName }} {{ sp.lastName }}<span *ngIf="sp.nickname" class="t-muted"> ({{ sp.nickname }})</span></span>
+          <span *ngIf="sp.isActive === false" class="badge badge-closed">💤 Inactif</span>
+        </div>
+        <p *ngIf="!currentSpouse()" class="t-muted small empty">Aucun(e) conjoint(e) déclaré(e).</p>
+
+        <h4 class="h-sub">{{ currentSpouse() ? 'Changer de conjoint(e)' : '+ Déclarer mon/ma conjoint(e)' }}</h4>
+
+        <label class="fld-label">Membre déjà existant</label>
+        <ion-select class="fld" interface="alert" [(ngModel)]="pickedSpouseId" [ngModelOptions]="{standalone:true}" placeholder="— Choisir un membre —">
+          <ion-select-option [value]="''">— Aucun (saisir un nouveau ci-dessous) —</ion-select-option>
+          <ion-select-option *ngFor="let m of spouseCandidates()" [value]="m.id">{{ m.firstName }} {{ m.lastName }}</ion-select-option>
+        </ion-select>
+
+        <ng-container *ngIf="!pickedSpouseId">
+          <form [formGroup]="spouseForm" (ngSubmit)="addSpouse()">
+            <p class="form-legend"><span class="star">*</span> Champ obligatoire</p>
+            <label class="fld-label req">Prénom</label>
+            <ion-input class="fld" formControlName="firstName" placeholder="Sophie"></ion-input>
+            <label class="fld-label req">Nom</label>
+            <ion-input class="fld" formControlName="lastName" placeholder="DUPONT"></ion-input>
+            <label class="fld-label">Surnom</label>
+            <ion-input class="fld" formControlName="nickname" placeholder="ex : Maman des enfants"></ion-input>
+            <label class="fld-label req">Sexe</label>
+            <ion-select class="fld" formControlName="gender" interface="alert" placeholder="Choisir">
+              <ion-select-option value="M">Masculin</ion-select-option>
+              <ion-select-option value="F">Féminin</ion-select-option>
+              <ion-select-option value="O">Autre</ion-select-option>
+            </ion-select>
+            <label class="fld-label">Date de naissance</label>
+            <ion-input class="fld" type="date" formControlName="birthDate"></ion-input>
+            <label class="fld-label">Téléphone</label>
+            <ion-input class="fld" type="tel" formControlName="phone" placeholder="+33 6 …"></ion-input>
+            <label class="fld-label">Email</label>
+            <ion-input class="fld" type="email" formControlName="email" placeholder="prenom@email.com"></ion-input>
+            <ion-button type="submit" expand="block" [disabled]="spouseForm.invalid" class="ion-margin-top">
+              Créer & lier
+            </ion-button>
+          </form>
+        </ng-container>
+
+        <ion-button *ngIf="pickedSpouseId" expand="block" (click)="addSpouse()" class="ion-margin-top">
+          Lier ce membre comme conjoint(e)
+        </ion-button>
+      </div>
+
       <!-- Ma descendance : seul un membre éditant SON PROPRE profil peut déclarer ses enfants. -->
       <div class="facam-card kids" *ngIf="isSelf">
         <h3 class="h-title">👶 Ma descendance</h3>
@@ -227,6 +284,7 @@ export class ProfilePage implements OnInit {
   readonly form = this.fb.nonNullable.group({
     firstName: ['', Validators.required],
     lastName: ['', Validators.required],
+    nickname: [''],
     phone: [''],
     birthDate: [''],
     gender: ['', Validators.required],
@@ -256,6 +314,19 @@ export class ProfilePage implements OnInit {
     email: ['', Validators.email],
   });
 
+  /** Sélection d'un membre existant comme conjoint (alternative au formulaire). */
+  pickedSpouseId = '';
+
+  readonly spouseForm = this.fb.nonNullable.group({
+    firstName: ['', Validators.required],
+    lastName: ['', Validators.required],
+    nickname: [''],
+    gender: ['' as '' | 'M' | 'F' | 'O', Validators.required],
+    birthDate: [''],
+    phone: [''],
+    email: ['', Validators.email],
+  });
+
   get males() {
     return this.members.filter((m) => m.gender === 'M' && m.id !== this.targetId);
   }
@@ -267,6 +338,77 @@ export class ProfilePage implements OnInit {
     return this.members
       .filter((m) => m.fatherId === this.targetId || m.motherId === this.targetId)
       .sort((a, b) => (a.birthDate ?? '').localeCompare(b.birthDate ?? '') || a.firstName.localeCompare(b.firstName));
+  }
+
+  /** Conjoint(e) actuel(le) — relation symétrique. */
+  currentSpouse(): Member | null {
+    const me = this.members.find((m) => m.id === this.targetId);
+    if (!me?.spouseId) return null;
+    return this.members.find((m) => m.id === me.spouseId) ?? null;
+  }
+
+  /** Membres candidats pour le lien conjoint : exclu moi-même, mes parents, mes enfants. */
+  spouseCandidates(): Member[] {
+    const me = this.members.find((m) => m.id === this.targetId);
+    const myChildrenIds = new Set(
+      this.members
+        .filter((m) => m.fatherId === this.targetId || m.motherId === this.targetId)
+        .map((m) => m.id),
+    );
+    return this.members
+      .filter((m) =>
+        m.id !== this.targetId &&
+        !m.isDeceased &&
+        m.id !== me?.fatherId &&
+        m.id !== me?.motherId &&
+        !myChildrenIds.has(m.id),
+      )
+      .sort((a, b) => a.firstName.localeCompare(b.firstName));
+  }
+
+  async addSpouse() {
+    const v = this.spouseForm.getRawValue();
+    const usingExisting = !!this.pickedSpouseId;
+    if (!usingExisting && this.spouseForm.invalid) return;
+    const loading = await this.loadingCtrl.create({ message: 'Liaison…' });
+    await loading.present();
+    this.api
+      .declareSpouse(
+        usingExisting
+          ? { spouseId: this.pickedSpouseId }
+          : {
+              firstName: v.firstName,
+              lastName: v.lastName,
+              nickname: v.nickname || undefined,
+              gender: v.gender as 'M' | 'F' | 'O',
+              birthDate: v.birthDate || undefined,
+              phone: v.phone || undefined,
+              email: v.email || undefined,
+            },
+      )
+      .subscribe({
+        next: async () => {
+          await loading.dismiss();
+          const t = await this.toastCtrl.create({
+            message: usingExisting ? 'Conjoint(e) lié(e)' : 'Conjoint(e) créé(e) et lié(e) (inactif/ve)',
+            color: 'success',
+            duration: 2500,
+          });
+          await t.present();
+          this.spouseForm.reset({
+            firstName: '', lastName: '', nickname: '', gender: '', birthDate: '', phone: '', email: '',
+          });
+          this.pickedSpouseId = '';
+          this.api.members().subscribe((list) => (this.members = list));
+        },
+        error: async (err: unknown) => {
+          await loading.dismiss();
+          const raw = (err as { error?: { message?: string | string[] } })?.error?.message;
+          const msg = Array.isArray(raw) ? raw.join(' ') : raw || 'Erreur lors de la liaison du conjoint';
+          const t = await this.toastCtrl.create({ message: String(msg), color: 'danger', duration: 3500 });
+          await t.present();
+        },
+      });
   }
 
   async addChild() {
@@ -316,6 +458,7 @@ export class ProfilePage implements OnInit {
         this.form.patchValue({
           firstName: m.firstName,
           lastName: m.lastName,
+          nickname: m.nickname ?? '',
           phone: m.phone ?? '',
           birthDate: m.birthDate ? m.birthDate.substring(0, 10) : '',
           gender: m.gender ?? '',
@@ -366,6 +509,7 @@ export class ProfilePage implements OnInit {
     const payload: Record<string, unknown> = {
       firstName: v.firstName,
       lastName: v.lastName,
+      nickname: v.nickname,
       phone: v.phone,
       birthDate: v.birthDate,
       gender: (v.gender as 'M' | 'F' | 'O') || undefined,

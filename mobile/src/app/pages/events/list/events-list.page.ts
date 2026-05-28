@@ -12,6 +12,7 @@ import {
 } from '@ionic/angular/standalone';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { CurrencyService } from '../../../core/services/currency.service';
 import { FamilyEvent } from '../../../core/models/api.models';
 
 @Component({
@@ -68,9 +69,9 @@ import { FamilyEvent } from '../../../core/models/api.models';
           <div class="bar-label">💶 Montant</div>
           <div class="facam-progress"><div class="facam-progress-fill" [style.width.%]="ratio(e)"></div></div>
           <div class="ev-amounts">
-            <span *ngIf="e.targetAmount">{{ e.totalCollected }} € / {{ e.targetAmount }} €</span>
-            <span *ngIf="!e.targetAmount">{{ e.totalCollected }} € collecté(s)</span>
-            <span class="mine">{{ e.type === 'external' ? 'ma contrib.' : 'ma part' }} : {{ e.myAllocation }} €</span>
+            <span *ngIf="e.targetAmount">{{ currency.eurXaf(e.totalCollected) }} / {{ currency.eurXaf(e.targetAmount) }}</span>
+            <span *ngIf="!e.targetAmount">{{ currency.eurXaf(e.totalCollected) }} collecté(s)</span>
+            <span class="mine">{{ e.type === 'external' ? 'ma contrib.' : 'ma part' }} : {{ currency.eurXaf(e.myAllocation) }}</span>
           </div>
           <div class="bar-label">⏳ Temps — {{ daysLeft(e) }} j restants</div>
           <div class="facam-progress"><div class="facam-progress-fill time" [style.width.%]="timeRatio(e)"></div></div>
@@ -100,6 +101,7 @@ import { FamilyEvent } from '../../../core/models/api.models';
 export class EventsListPage implements OnInit {
   private readonly api = inject(ApiService);
   readonly auth = inject(AuthService);
+  readonly currency = inject(CurrencyService);
   readonly router = inject(Router);
   events: FamilyEvent[] = [];
 

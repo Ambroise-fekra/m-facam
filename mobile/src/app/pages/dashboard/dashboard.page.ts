@@ -22,6 +22,7 @@ import {
 } from 'ionicons/icons';
 import { ApiService, FamilyInfo } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { CurrencyService } from '../../core/services/currency.service';
 import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.models';
 
 @Component({
@@ -73,22 +74,22 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
       <!-- Caisse familiale en premier, en grand -->
       <div class="cash-card">
         <span class="label">💰 Caisse familiale (disponible)</span>
-        <span class="facam-balance-amount">{{ cash?.totalCash ?? '—' }} €</span>
+        <span class="facam-balance-amount">{{ cash?.totalCash != null ? currency.eurXaf(cash!.totalCash) : '—' }}</span>
         <p class="contributors" *ngIf="cash?.contributorsCount != null">👥 <strong>{{ cash?.contributorsCount }}</strong> cotisant(s)</p>
         <div class="loans-out" *ngIf="hasOutstandingLoans()">
           <span>💸 Reste à rembourser sur prêt(s) en cours</span>
-          <strong>{{ cash?.loansOutstanding }} €</strong>
+          <strong>{{ currency.eurXaf(cash?.loansOutstanding) }}</strong>
         </div>
         <p class="loans-note" *ngIf="hasOutstandingLoans()">
           {{ cash?.loansActiveCount }} prêt(s) actif(s) — déjà décaissé(s) de la caisse, en attente de remboursement.
         </p>
         <div class="myshare">
           <span>Votre part dans la caisse</span>
-          <strong>{{ balance?.balance ?? '—' }} €</strong>
+          <strong>{{ balance?.balance != null ? currency.eurXaf(balance!.balance) : '—' }}</strong>
         </div>
         <div class="myshare sub">
           <span>Total cotisé / alloué</span>
-          <strong>{{ balance?.totalContributed ?? '0' }} € / {{ balance?.totalAllocated ?? '0' }} €</strong>
+          <strong>{{ currency.eurXaf(balance?.totalContributed ?? '0') }} / {{ currency.eurXaf(balance?.totalAllocated ?? '0') }}</strong>
         </div>
       </div>
 
@@ -125,9 +126,9 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
         <div class="bar-label" *ngIf="e.targetAmount">💶 Montant</div>
         <div class="facam-progress" *ngIf="e.targetAmount"><div class="facam-progress-fill" [style.width.%]="ratio(e)"></div></div>
         <div class="ev-amounts">
-          <span *ngIf="e.targetAmount">{{ e.totalCollected }} € / {{ e.targetAmount }} €</span>
-          <span *ngIf="!e.targetAmount">{{ e.totalCollected }} € collecté(s)</span>
-          <span class="mine">{{ e.type === 'external' ? 'ma contrib.' : 'ma part' }} : {{ e.myAllocation }} €</span>
+          <span *ngIf="e.targetAmount">{{ currency.eurXaf(e.totalCollected) }} / {{ currency.eurXaf(e.targetAmount) }}</span>
+          <span *ngIf="!e.targetAmount">{{ currency.eurXaf(e.totalCollected) }} collecté(s)</span>
+          <span class="mine">{{ e.type === 'external' ? 'ma contrib.' : 'ma part' }} : {{ currency.eurXaf(e.myAllocation) }}</span>
         </div>
 
         <div class="bar-label">⏳ Temps — {{ daysLeft(e) }} j restants</div>
@@ -196,6 +197,7 @@ import { CashSnapshot, FamilyEvent, MyBalance } from '../../core/models/api.mode
 export class DashboardPage implements OnInit {
   readonly api = inject(ApiService);
   readonly auth = inject(AuthService);
+  readonly currency = inject(CurrencyService);
   readonly router = inject(Router);
 
   balance: MyBalance | null = null;

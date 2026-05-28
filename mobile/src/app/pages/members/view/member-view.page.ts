@@ -53,6 +53,7 @@ import { Member } from '../../../core/models/api.models';
         </div>
 
         <h2 class="full-name">{{ m.firstName }} {{ m.lastName }}</h2>
+        <p *ngIf="m.nickname" class="nick">« {{ m.nickname }} »</p>
 
         <div class="badges">
           <span *ngIf="m.role === 'admin'" class="badge badge-proposed">👑 Admin</span>
@@ -79,6 +80,9 @@ import { Member } from '../../../core/models/api.models';
           </div>
           <div class="row" *ngIf="m.fatherName || m.motherName">
             <span>⬆️ Parents</span><strong>{{ parents(m) }}</strong>
+          </div>
+          <div class="row" *ngIf="m.spouseName">
+            <span>💍 Conjoint(e)</span><strong>{{ m.spouseName }}</strong>
           </div>
           <div class="row" *ngIf="m.children?.length">
             <span>⬇️ Enfants</span><strong>{{ childrenNames(m) }}</strong>

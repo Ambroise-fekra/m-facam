@@ -10,6 +10,7 @@ import {
   IonToolbar,
 } from '@ionic/angular/standalone';
 import { ApiService } from '../../core/services/api.service';
+import { CurrencyService } from '../../core/services/currency.service';
 import { MyBalance, Transaction } from '../../core/models/api.models';
 
 @Component({
@@ -28,17 +29,17 @@ import { MyBalance, Transaction } from '../../core/models/api.models';
       <!-- Solde personnel mis en avant -->
       <div class="balance-hero" *ngIf="balance">
         <span class="lbl">Ma part dans la caisse</span>
-        <span class="facam-balance-amount">{{ balance.balance }} €</span>
+        <span class="facam-balance-amount">{{ currency.eurXaf(balance.balance) }}</span>
       </div>
 
       <div class="totals">
         <div class="tot credit">
           <span>Cotisations (crédit)</span>
-          <strong>+{{ totalCredit }} €</strong>
+          <strong>+{{ currency.eurXaf(totalCredit) }}</strong>
         </div>
         <div class="tot debit">
           <span>Allocations (débit)</span>
-          <strong>-{{ totalDebit }} €</strong>
+          <strong>-{{ currency.eurXaf(totalDebit) }}</strong>
         </div>
       </div>
 
@@ -51,7 +52,7 @@ import { MyBalance, Transaction } from '../../core/models/api.models';
           <div class="date">{{ t.createdAt | date: 'medium' }}</div>
         </div>
         <div class="amt" [class.credit]="t.type === 'credit'" [class.debit]="t.type === 'debit'">
-          {{ t.type === 'credit' ? '+' : '-' }}{{ t.amount }} €
+          {{ t.type === 'credit' ? '+' : '-' }}{{ currency.eurXaf(t.amount) }}
         </div>
       </div>
 
@@ -84,6 +85,7 @@ import { MyBalance, Transaction } from '../../core/models/api.models';
 })
 export class TransactionsPage implements OnInit {
   private readonly api = inject(ApiService);
+  readonly currency = inject(CurrencyService);
   transactions: Transaction[] = [];
   balance: MyBalance | null = null;
   totalCredit = '0.00';

@@ -93,7 +93,7 @@ import { Member } from '../../../core/models/api.models';
         </div>
         <div class="info clickable" (click)="openView(m)" role="button" [attr.aria-label]="'Voir la fiche de ' + m.firstName + ' ' + m.lastName">
           <div class="name">
-            {{ m.firstName }} {{ m.lastName }}
+            {{ m.firstName }} {{ m.lastName }}<span *ngIf="m.nickname" class="nick"> « {{ m.nickname }} »</span>
             <span *ngIf="m.role === 'admin'" class="badge badge-proposed">👑 Admin</span>
             <span *ngIf="m.id === auth.snapshot?.member?.id" class="badge badge-active">Vous</span>
             <span *ngIf="m.isBlocked" class="badge badge-rejected">🚫 Bloqué</span>
@@ -115,6 +115,7 @@ import { Member } from '../../../core/models/api.models';
           </div>
           <div class="rel email" *ngIf="auth.isAdmin && m.email">✉️ {{ m.email }}</div>
           <div class="rel" *ngIf="m.fatherName || m.motherName">⬆️ Parents : {{ parents(m) }}</div>
+          <div class="rel spouse" *ngIf="m.spouseName">💍 Conjoint(e) : {{ m.spouseName }}</div>
           <div class="rel children" *ngIf="m.children?.length">⬇️ Enfants : {{ childrenNames(m) }}</div>
         </div>
         <div class="row-actions">

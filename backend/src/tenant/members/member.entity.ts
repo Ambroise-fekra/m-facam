@@ -97,6 +97,18 @@ export class Member {
   @Column({ name: 'mother_id', type: 'uuid', nullable: true })
   motherId: string | null;
 
+  /** Surnom / petit nom familier — facultatif. */
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  nickname: string | null;
+
+  /** Conjoint actuel — un seul à la fois (écrasé en cas de remariage). */
+  @ManyToOne(() => Member, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'spouse_id' })
+  spouse: Member | null;
+
+  @Column({ name: 'spouse_id', type: 'uuid', nullable: true })
+  spouseId: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

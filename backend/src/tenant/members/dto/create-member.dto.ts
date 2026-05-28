@@ -59,4 +59,10 @@ export class CreateMemberDto {
   @IsOptional()
   @IsBoolean()
   canLogin?: boolean;
+
+  /** Surnom / petit nom familier (facultatif). */
+  @IsOptional()
+  @IsString()
+  @Length(0, 80)
+  nickname?: string;
 }

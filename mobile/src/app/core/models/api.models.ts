@@ -105,10 +105,15 @@ export interface Member {
   gender?: 'M' | 'F' | 'O';
   paypalEmail?: string;
   role: 'admin' | 'member';
+  /** Surnom / petit nom familier (facultatif). */
+  nickname?: string | null;
   fatherId?: string;
   motherId?: string;
   fatherName?: string | null;
   motherName?: string | null;
+  /** Conjoint(e) actuel(le) — id et nom complet (résolus côté backend). */
+  spouseId?: string | null;
+  spouseName?: string | null;
   photo?: string | null;
   /** False = "inactive" member: in the family tree but not counted in quorum, can't log in. */
   isActive?: boolean;

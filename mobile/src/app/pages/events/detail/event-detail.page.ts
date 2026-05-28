@@ -17,9 +17,10 @@ import {
   LoadingController,
   ToastController,
 } from '@ionic/angular/standalone';
-import { ApiService } from '../../../core/services/api.service';
+import { ApiService, FamilyInfo } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { WhatsappService } from '../../../core/services/whatsapp.service';
+import { CurrencyService } from '../../../core/services/currency.service';
 import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.models';
 
 @Component({
@@ -56,7 +57,7 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
 
       <!-- Loan banner -->
       <div class="facam-card loan-banner" *ngIf="event.type === 'loan'">
-        💰 <strong>Prêt</strong> de <strong>{{ event.targetAmount }} €</strong>
+        💰 <strong>Prêt</strong> de <strong>{{ currency.eurXaf(event.targetAmount) }}</strong>
         à <strong>{{ event.borrowerName }}</strong>
         — échéance de remboursement le <strong>{{ event.deadline | date: 'dd/MM/yyyy' }}</strong>.
       </div>
@@ -123,11 +124,11 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
       <!-- FUNDING (active, non-loan) — both classical and external share this header card -->
       <ng-container *ngIf="event.status === 'active' && event.type !== 'loan'">
         <div class="facam-card">
-          <div class="row" *ngIf="event.targetAmount"><span>🎯 Objectif</span><strong>{{ event.targetAmount }} €</strong></div>
+          <div class="row" *ngIf="event.targetAmount"><span>🎯 Objectif</span><strong>{{ currency.eurXaf(event.targetAmount) }}</strong></div>
           <div class="row" *ngIf="!event.targetAmount"><span>🎯 Objectif</span><strong class="t-muted">Pas d'objectif fixé</strong></div>
-          <div class="row" *ngIf="event.suggestedPerMember"><span>💡 Suggéré par membre</span><strong class="t-accent">{{ event.suggestedPerMember }} €</strong></div>
-          <div class="row"><span>💶 Collecté</span><strong>{{ event.totalCollected }} €</strong></div>
-          <div class="row"><span>🙋 {{ event.type === 'external' ? 'Ma contribution' : 'Ma part (privée)' }}</span><strong class="t-accent">{{ event.myAllocation }} €</strong></div>
+          <div class="row" *ngIf="event.suggestedPerMember"><span>💡 Suggéré par membre</span><strong class="t-accent">{{ currency.eurXaf(event.suggestedPerMember) }}</strong></div>
+          <div class="row"><span>💶 Collecté</span><strong>{{ currency.eurXaf(event.totalCollected) }}</strong></div>
+          <div class="row"><span>🙋 {{ event.type === 'external' ? 'Ma contribution' : 'Ma part (privée)' }}</span><strong class="t-accent">{{ currency.eurXaf(event.myAllocation) }}</strong></div>
           <div class="bar-label" *ngIf="event.targetAmount">💶 Avancement</div>
           <div class="facam-progress" *ngIf="event.targetAmount"><div class="facam-progress-fill" [style.width.%]="ratio()"></div></div>
           <div class="bar-label">⏳ Temps avant clôture — {{ daysLeft() }} j restants</div>
@@ -137,7 +138,7 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         <!-- Classical event: allocate from share -->
         <div class="facam-card" *ngIf="event.type !== 'external'">
           <h3 class="h-title">Allouer depuis mon solde</h3>
-          <p class="t-muted small" *ngIf="balance">Solde disponible : {{ balance.balance }} €</p>
+          <p class="t-muted small" *ngIf="balance">Solde disponible : {{ currency.eurXaf(balance.balance) }}</p>
           <label class="fld-label">Montant à allouer (€)</label>
           <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="amount" placeholder="0"></ion-input>
           <ion-button expand="block" class="ion-margin-top" [disabled]="!canAllocate()" (click)="allocate()">
@@ -178,9 +179,9 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
       <!-- LOAN active : suivi des remboursements (pas d'allocation) -->
       <ng-container *ngIf="event.status === 'active' && event.type === 'loan'">
         <div class="facam-card">
-          <div class="row"><span>💰 Montant prêté</span><strong>{{ event.targetAmount }} €</strong></div>
-          <div class="row"><span>↩️ Remboursé</span><strong>{{ event.totalCollected }} €</strong></div>
-          <div class="row"><span>⏳ Reste dû</span><strong class="t-accent">{{ remainingLoan() | number:'1.2-2' }} €</strong></div>
+          <div class="row"><span>💰 Montant prêté</span><strong>{{ currency.eurXaf(event.targetAmount) }}</strong></div>
+          <div class="row"><span>↩️ Remboursé</span><strong>{{ currency.eurXaf(event.totalCollected) }}</strong></div>
+          <div class="row"><span>⏳ Reste dû</span><strong class="t-accent">{{ currency.eurXaf(remainingLoan()) }}</strong></div>
           <div class="bar-label">↩️ Remboursement</div>
           <div class="facam-progress"><div class="facam-progress-fill" [style.width.%]="ratio()"></div></div>
           <div class="bar-label">⏳ Temps avant échéance — {{ daysLeft() }} j restants</div>
@@ -193,7 +194,7 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         </div>
         <div class="facam-card" *ngIf="event.payoutStatus !== 'done' && auth.isAdmin">
           <h3 class="h-title">💸 Remettre les fonds à l'emprunteur</h3>
-          <p class="t-muted small">Remettez <strong>{{ event.targetAmount }} €</strong> à {{ event.borrowerName }}, puis enregistrez le mode.</p>
+          <p class="t-muted small">Remettez <strong>{{ currency.eurXaf(event.targetAmount) }}</strong> à {{ event.borrowerName }}, puis enregistrez le mode.</p>
           <div class="payout-coords" *ngIf="event.responsiblePayout">
             <span *ngIf="event.responsiblePayout.preferredChannel" class="pref">📌 Canal préféré : <strong>{{ event.responsiblePayout.preferredChannel === 'paypal' ? 'PayPal' : 'Mobile Money' }}</strong></span>
             <span *ngIf="event.responsiblePayout.paypalEmail">📧 PayPal : <strong>{{ event.responsiblePayout.paypalEmail }}</strong></span>
@@ -218,7 +219,7 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         <!-- Disbursement done → repayment form for borrower -->
         <div class="facam-card" *ngIf="event.payoutStatus === 'done' && isBorrower()">
           <h3 class="h-title">↩️ Enregistrer un remboursement</h3>
-          <p class="t-muted small">Vous devez encore <strong>{{ remainingLoan() | number:'1.2-2' }} €</strong>.</p>
+          <p class="t-muted small">Vous devez encore <strong>{{ currency.eurXaf(remainingLoan()) }}</strong>.</p>
           <label class="fld-label req">Montant (€)</label>
           <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="repayAmount" placeholder="0"></ion-input>
           <label class="fld-label">Mode (optionnel)</label>
@@ -246,7 +247,7 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
       <!-- CLOSED -->
       <ng-container *ngIf="event.status === 'closed'">
         <div class="facam-card">
-          <div class="row"><span>💶 Total collecté</span><strong>{{ event.totalCollected }} €</strong></div>
+          <div class="row"><span>💶 Total collecté</span><strong>{{ currency.eurXaf(event.totalCollected) }}</strong></div>
           <div class="row"><span>👤 À remettre à</span><strong>{{ event.responsibleName }}</strong></div>
           <div class="row"><span>📅 Clôturé le</span><strong>{{ event.closedAt | date: 'dd/MM/yyyy' }}</strong></div>
         </div>
@@ -262,12 +263,29 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
         <!-- Versement en attente -->
         <ng-container *ngIf="event.payoutStatus !== 'done'">
           <div class="facam-card pending" *ngIf="!auth.isAdmin">
-            ⏳ <strong>{{ event.totalCollected }} €</strong> à remettre à {{ event.responsibleName }}.
+            ⏳ <strong>{{ currency.eurXaf(event.totalCollected) }}</strong> à remettre à {{ event.responsibleName }}.
             En attente de l'enregistrement du versement par l'administrateur.
           </div>
+
+          <!-- Réouverture / prolongation : tant que les fonds ne sont pas versés -->
+          <div class="facam-card" *ngIf="canExtend()">
+            <h3 class="h-title">↩️ Prolonger l'évènement</h3>
+            <p class="t-muted small">
+              Repousse la date limite (et éventuellement la date de l'évènement) et rouvre l'évènement
+              en collecte si nécessaire. À utiliser uniquement tant que les fonds n'ont pas encore été versés.
+            </p>
+            <label class="fld-label req">Nouvelle date limite (collecte)</label>
+            <ion-input class="fld" type="date" [(ngModel)]="extendDeadline"></ion-input>
+            <label class="fld-label">Nouvelle date de l'évènement <span class="t-muted">(facultatif)</span></label>
+            <ion-input class="fld" type="date" [(ngModel)]="extendEventDate"></ion-input>
+            <ion-button expand="block" class="ion-margin-top" color="primary" [disabled]="!extendDeadline" (click)="extend()">
+              Prolonger & rouvrir
+            </ion-button>
+          </div>
+
           <div class="facam-card" *ngIf="auth.isAdmin">
             <h3 class="h-title">💸 Enregistrer le versement</h3>
-            <p class="t-muted small">Remettez <strong>{{ event.totalCollected }} €</strong> à {{ event.responsibleName }} par le canal de votre choix, puis enregistrez-le ici.</p>
+            <p class="t-muted small">Remettez <strong>{{ currency.eurXaf(event.totalCollected) }}</strong> à {{ event.responsibleName }} par le canal de votre choix, puis enregistrez-le ici.</p>
             <div class="payout-coords" *ngIf="event.responsiblePayout">
               <span *ngIf="event.responsiblePayout.preferredChannel" class="pref">📌 Canal préféré : <strong>{{ event.responsiblePayout.preferredChannel === 'paypal' ? 'PayPal' : 'Mobile Money' }}</strong></span>
               <span *ngIf="event.responsiblePayout.paypalEmail">📧 PayPal : <strong>{{ event.responsiblePayout.paypalEmail }}</strong></span>
@@ -329,12 +347,15 @@ import { FamilyEvent, MyBalance, VoteValue } from '../../../core/models/api.mode
 export class EventDetailPage implements OnInit {
   private readonly api = inject(ApiService);
   readonly auth = inject(AuthService);
+  readonly currency = inject(CurrencyService);
   private readonly whatsapp = inject(WhatsappService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly loadingCtrl = inject(LoadingController);
   private readonly toastCtrl = inject(ToastController);
   private readonly alertCtrl = inject(AlertController);
+  /** Info famille pour repérer si je suis le chef (autorisé à prolonger). */
+  familyInfo: FamilyInfo | null = null;
 
   event: FamilyEvent | null = null;
   balance: MyBalance | null = null;
@@ -348,6 +369,9 @@ export class EventDetailPage implements OnInit {
   extAmount = 0;
   extMethod = '';
   extNote = '';
+  /** Prolongation : nouvelle date limite (collecte) + nouvelle date évènement. */
+  extendDeadline = '';
+  extendEventDate = '';
 
   ngOnInit() {
     this.refreshAll();
@@ -360,6 +384,43 @@ export class EventDetailPage implements OnInit {
   private refreshAll() {
     this.reload();
     this.api.myBalance().subscribe((b) => (this.balance = b));
+    this.api.familyInfo().subscribe((i) => (this.familyInfo = i));
+  }
+
+  /** Admin OU chef de famille peuvent prolonger tant que les fonds ne sont pas versés. */
+  canExtend(): boolean {
+    if (!this.event) return false;
+    if (this.event.payoutStatus === 'done') return false;
+    if (this.event.status !== 'closed' && this.event.status !== 'active') return false;
+    const meId = this.auth.snapshot?.member?.id;
+    return this.auth.isAdmin || (!!meId && meId === this.familyInfo?.chief?.id);
+  }
+
+  async extend() {
+    if (!this.event || !this.extendDeadline) return;
+    const loading = await this.loadingCtrl.create({ message: 'Prolongation…' });
+    await loading.present();
+    this.api.extendEvent(this.event.id, this.extendDeadline, this.extendEventDate || null).subscribe({
+      next: async () => {
+        await loading.dismiss();
+        const t = await this.toastCtrl.create({
+          message: 'Évènement prolongé et rouvert',
+          color: 'success',
+          duration: 2200,
+        });
+        await t.present();
+        this.extendDeadline = '';
+        this.extendEventDate = '';
+        this.refreshAll();
+      },
+      error: async (err: unknown) => {
+        await loading.dismiss();
+        const raw = (err as { error?: { message?: string | string[] } })?.error?.message;
+        const msg = Array.isArray(raw) ? raw.join(' ') : raw || 'Prolongation impossible.';
+        const t = await this.toastCtrl.create({ message: String(msg), color: 'danger', duration: 3500 });
+        await t.present();
+      },
+    });
   }
 
   private reload() {

@@ -8,6 +8,7 @@ import { Member, MemberGender } from './member.entity';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { DeclareDescendantDto } from './dto/declare-descendant.dto';
+import { DeclareSpouseDto } from './dto/declare-spouse.dto';
 import { FamilyContext } from '../../common/decorators/family-context.decorator';
 import { Family } from '../../master/families/family.entity';
 
@@ -125,6 +126,9 @@ export class MembersService {
       motherId: m.motherId,
       fatherName: nameOf(m.fatherId),
       motherName: nameOf(m.motherId),
+      spouseId: m.spouseId,
+      spouseName: nameOf(m.spouseId),
+      nickname: m.nickname,
       photo: m.photo,
       isActive: m.isActive,
       isBlocked: m.isBlocked,
@@ -166,6 +170,7 @@ export class MembersService {
     const member = repo.create({
       firstName: dto.firstName,
       lastName: dto.lastName,
+      nickname: dto.nickname?.trim() || null,
       email,
       phone,
       birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
@@ -301,6 +306,73 @@ export class MembersService {
     return { id: saved.id };
   }
 
+  /**
+   * Tout membre actif peut déclarer son conjoint actuel. Deux cas :
+   *  - Le conjoint existe déjà dans la famille → on passe `spouseId`. La
+   *    relation est positionnée des deux côtés (bidirectionnelle). Si l'un
+   *    des deux était déjà marié à quelqu'un d'autre, l'ancien lien est
+   *    rompu (un seul conjoint à la fois).
+   *  - Sinon, on le crée comme nouveau membre (inactif, sans login), puis
+   *    on positionne le lien des deux côtés.
+   */
+  async declareSpouse(
+    fam: FamilyContext,
+    dto: DeclareSpouseDto,
+  ): Promise<{ id: string; spouseId: string }> {
+    const repo = await this.repo(fam.identifier);
+    const me = await repo.findOne({ where: { id: fam.memberId } });
+    if (!me || !me.isActive) throw new ForbiddenException('Membre inactif');
+    if (me.isDeceased) throw new ForbiddenException('Membre décédé');
+    if (me.isBlocked) throw new ForbiddenException('Votre compte est bloqué');
+
+    let spouse: Member | null = null;
+    if (dto.spouseId) {
+      spouse = await repo.findOne({ where: { id: dto.spouseId } });
+      if (!spouse) throw new NotFoundException('Membre conjoint introuvable');
+      if (spouse.id === me.id) {
+        throw new BadRequestException('Vous ne pouvez pas vous déclarer comme votre propre conjoint(e).');
+      }
+      if (spouse.isDeceased) {
+        throw new BadRequestException('Ce membre est décédé — vous ne pouvez pas le déclarer comme conjoint(e) actuel(le).');
+      }
+    } else {
+      if (!dto.firstName || !dto.lastName || !dto.gender) {
+        throw new BadRequestException('Prénom, nom et sexe sont requis pour créer un nouveau conjoint.');
+      }
+      spouse = repo.create({
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        nickname: dto.nickname?.trim() || null,
+        gender: dto.gender,
+        birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
+        phone: normalizePhone(dto.phone),
+        email: dto.email ? dto.email.toLowerCase() : null,
+        role: 'member',
+        // Créé inactif — l'admin / chef de famille l'activera plus tard.
+        isActive: false,
+        passwordHash: null,
+        inviteToken: null,
+      });
+      spouse = await repo.save(spouse);
+    }
+
+    // Rompre l'ancien lien éventuel des deux côtés (un seul conjoint à la
+    // fois) avant de réécrire le nouveau.
+    if (me.spouseId && me.spouseId !== spouse.id) {
+      const old = await repo.findOne({ where: { id: me.spouseId } });
+      if (old) { old.spouseId = null; await repo.save(old); }
+    }
+    if (spouse.spouseId && spouse.spouseId !== me.id) {
+      const old = await repo.findOne({ where: { id: spouse.spouseId } });
+      if (old) { old.spouseId = null; await repo.save(old); }
+    }
+    me.spouseId = spouse.id;
+    spouse.spouseId = me.id;
+    await repo.save(me);
+    await repo.save(spouse);
+    return { id: me.id, spouseId: spouse.id };
+  }
+
   /** Admin only: toggle the is_blocked flag (e.g. after a loan is settled). */
   async setBlocked(fam: FamilyContext, id: string, blocked: boolean) {
     if (!fam.isAdmin) {
@@ -382,6 +454,7 @@ export class MembersService {
     if (dto.preferredChannel !== undefined) {
       m.preferredChannel = (dto.preferredChannel || null) as 'paypal' | 'mobile_money' | null;
     }
+    if (dto.nickname !== undefined) m.nickname = dto.nickname.trim() || null;
     await repo.save(m);
     const all = await repo.find();
     return this.enrich(m, all);

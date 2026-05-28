@@ -571,6 +571,60 @@ export class EventsService {
     return this.findOne(fam, eventId);
   }
 
+  /**
+   * Admin OU chef de famille rouvre un évènement clos automatiquement (deadline
+   * passée) tant que les fonds n'ont PAS encore été versés au responsable, en
+   * prolongeant la date limite et éventuellement la date de l'évènement.
+   * Sur un évènement encore actif, on peut aussi étendre la deadline sans le
+   * fermer (rallonge pour collecter plus). Refusé une fois payoutStatus=done :
+   * la caisse a déjà été débitée, on ne rouvre pas.
+   */
+  async extend(
+    fam: FamilyContext,
+    eventId: string,
+    dto: { deadline?: string; eventDate?: string | null },
+  ) {
+    const isAdminOrChief = fam.isAdmin || (await this.isChiefOfFamily(fam));
+    if (!isAdminOrChief) {
+      throw new ForbiddenException('Réservé à l\'administrateur ou au chef de famille');
+    }
+    const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
+    const repo = ds.getRepository(Event);
+    const event = await repo.findOne({ where: { id: eventId } });
+    if (!event) throw new NotFoundException('Event not found');
+    if (event.payoutStatus === 'done') {
+      throw new BadRequestException('Le versement est déjà effectué : prolongation impossible.');
+    }
+    if (event.status !== 'active' && event.status !== 'closed') {
+      throw new BadRequestException('Seul un évènement actif ou clos peut être prolongé.');
+    }
+    if (dto.deadline) {
+      const d = new Date(dto.deadline);
+      if (isNaN(d.getTime())) throw new BadRequestException('Date limite invalide');
+      if (d.getTime() < Date.now()) {
+        throw new BadRequestException('La nouvelle date limite doit être dans le futur.');
+      }
+      event.deadline = d;
+    }
+    if (dto.eventDate !== undefined) {
+      event.eventDate = dto.eventDate ? new Date(dto.eventDate) : null;
+    }
+    // Rouvre l'évènement si nécessaire.
+    if (event.status === 'closed') {
+      event.status = 'active';
+      event.closedAt = null;
+    }
+    await repo.save(event);
+    return this.findOne(fam, eventId);
+  }
+
+  /** True if the caller is the family chief. */
+  private async isChiefOfFamily(fam: FamilyContext): Promise<boolean> {
+    if (fam.isAdmin) return true;
+    const family = await this.familyRepo.findOne({ where: { id: fam.familyId } });
+    return !!family && family.chiefMemberId === fam.memberId;
+  }
+
   /** Admin records the manual hand-over of the funds to the responsible. */
   async settle(fam: FamilyContext, eventId: string, dto: SettleEventDto) {
     if (!fam.isAdmin) throw new ForbiddenException('Réservé à l\'administrateur');

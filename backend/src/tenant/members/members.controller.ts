@@ -7,6 +7,7 @@ import { MembersService } from './members.service';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { DeclareDescendantDto } from './dto/declare-descendant.dto';
+import { DeclareSpouseDto } from './dto/declare-spouse.dto';
 
 @ApiTags('members')
 @ApiBearerAuth()
@@ -67,6 +68,12 @@ export class MembersController {
   @ApiOperation({ summary: 'Déclarer un enfant (membre actif, sexe M/F)' })
   declareDescendant(@CurrentFamily() fam: FamilyContext, @Body() dto: DeclareDescendantDto) {
     return this.members.declareDescendant(fam, dto);
+  }
+
+  @Post('spouse')
+  @ApiOperation({ summary: 'Déclarer son conjoint actuel (existant ou nouveau membre)' })
+  declareSpouse(@CurrentFamily() fam: FamilyContext, @Body() dto: DeclareSpouseDto) {
+    return this.members.declareSpouse(fam, dto);
   }
 
   @Post(':id/enable-login')

@@ -51,6 +51,8 @@ export interface FamilyInfo {
 
 interface ContributionPayload {
   amount: number;
+  /** Canal de paiement choisi par le membre (paypal | mobile_money). */
+  channel?: 'paypal' | 'mobile_money';
 }
 
 interface AllocationPayload {
@@ -86,11 +88,14 @@ interface MemberCreatePayload {
   motherId?: string;
   password?: string;
   canLogin?: boolean;
+  /** Surnom (facultatif). */
+  nickname?: string;
 }
 
 interface MemberUpdatePayload {
   firstName?: string;
   lastName?: string;
+  nickname?: string;
   phone?: string;
   birthDate?: string;
   gender?: 'M' | 'F' | 'O';
@@ -187,6 +192,14 @@ export class ApiService {
     return this.http.post<FamilyEvent>(`${this.base}/events/${eventId}/close`, {});
   }
 
+  /** Admin / chef de famille : prolonger un évènement et rouvrir s'il était clos sans payout. */
+  extendEvent(eventId: string, deadline: string, eventDate?: string | null) {
+    return this.http.post<FamilyEvent>(`${this.base}/events/${eventId}/extend`, {
+      deadline,
+      ...(eventDate !== undefined ? { eventDate } : {}),
+    });
+  }
+
   settleEvent(eventId: string, method: string, note?: string) {
     return this.http.post<FamilyEvent>(`${this.base}/events/${eventId}/settle`, { method, note });
   }
@@ -236,6 +249,24 @@ export class ApiService {
     email?: string;
   }) {
     return this.http.post<{ id: string }>(`${this.base}/members/descendants`, p);
+  }
+
+  /**
+   * Déclarer son conjoint actuel. Deux modes :
+   *  - spouseId fourni → on lie un membre existant (autres champs ignorés)
+   *  - sinon → on crée un nouveau membre (inactif) avec firstName/lastName/gender requis.
+   */
+  declareSpouse(p: {
+    spouseId?: string;
+    firstName?: string;
+    lastName?: string;
+    gender?: 'M' | 'F' | 'O';
+    birthDate?: string;
+    phone?: string;
+    email?: string;
+    nickname?: string;
+  }) {
+    return this.http.post<{ id: string; spouseId: string }>(`${this.base}/members/spouse`, p);
   }
 
   allocate(p: AllocationPayload) {

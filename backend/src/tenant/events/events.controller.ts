@@ -66,6 +66,20 @@ export class EventsController {
     return this.events.adminClose(fam, id);
   }
 
+  @Post(':id/extend')
+  @ApiOperation({
+    summary:
+      'Prolonger un évènement (admin/chef) — étend la date limite et éventuellement la date prévue. ' +
+      'Rouvre l\'évènement si il a été clos automatiquement et que le versement n\'a pas encore été fait.',
+  })
+  extend(
+    @CurrentFamily() fam: FamilyContext,
+    @Param('id') id: string,
+    @Body() dto: { deadline?: string; eventDate?: string | null },
+  ) {
+    return this.events.extend(fam, id, dto);
+  }
+
   @Post(':id/settle')
   @ApiOperation({ summary: 'Enregistrer le versement au responsable (admin)' })
   settle(@CurrentFamily() fam: FamilyContext, @Param('id') id: string, @Body() dto: SettleEventDto) {
