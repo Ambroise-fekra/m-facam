@@ -52,7 +52,7 @@ import { MyBalance, Transaction } from '../../core/models/api.models';
           <div class="date">{{ t.createdAt | date: 'medium' }}</div>
         </div>
         <div class="amt" [class.credit]="t.type === 'credit'" [class.debit]="t.type === 'debit'">
-          {{ t.type === 'credit' ? '+' : '-' }}{{ currency.eurXaf(t.amount) }}
+          {{ t.type === 'credit' ? '+' : '-' }}{{ currency.asOriginal(t.originalAmount, t.originalCurrency, t.amount) }}
         </div>
       </div>
 

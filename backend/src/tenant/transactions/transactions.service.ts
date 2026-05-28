@@ -9,7 +9,12 @@ export interface Transaction {
   id: string;
   type: 'credit' | 'debit';
   label: string;
+  /** Montant canonique en EUR (sert au total). */
   amount: string;
+  /** Montant tel que saisi par le membre — peut être en FCFA. */
+  originalAmount: string | null;
+  /** 'EUR' ou 'XAF'. Null sur les anciennes lignes → fallback amount. */
+  originalCurrency: 'EUR' | 'XAF' | null;
   createdAt: Date;
   reference: string;
 }
@@ -32,7 +37,14 @@ export class TransactionsService {
       .getRepository(Allocation)
       .createQueryBuilder('a')
       .leftJoin(Event, 'e', 'e.id = a.event_id')
-      .select(['a.id AS id', 'a.amount AS amount', 'a.created_at AS createdAt', 'e.title AS title'])
+      .select([
+        'a.id AS id',
+        'a.amount AS amount',
+        'a.original_amount AS original_amount',
+        'a.original_currency AS original_currency',
+        'a.created_at AS createdAt',
+        'e.title AS title',
+      ])
       .where('a.member_id = :m', { m: fam.memberId })
       .orderBy('a.created_at', 'DESC')
       .getRawMany();
@@ -43,6 +55,8 @@ export class TransactionsService {
         type: 'credit' as const,
         label: 'Cotisation',
         amount: c.amount,
+        originalAmount: c.originalAmount,
+        originalCurrency: c.originalCurrency,
         createdAt: c.completedAt ?? c.createdAt,
         reference: c.paypalTxId ?? c.id,
       })),
@@ -51,6 +65,8 @@ export class TransactionsService {
         type: 'debit' as const,
         label: `Allocation — ${d.title ?? 'évènement'}`,
         amount: d.amount,
+        originalAmount: d.original_amount ?? null,
+        originalCurrency: d.original_currency ?? null,
         createdAt: d.createdat,
         reference: d.id,
       })),

@@ -5,6 +5,7 @@ import { Event } from '../events/event.entity';
 import { Member } from '../members/member.entity';
 import { LoanRepayment } from './loan-repayment.entity';
 import { CreateRepaymentDto } from './dto/create-repayment.dto';
+import { originalToCols } from '../../common/currency';
 
 @Injectable()
 export class LoansService {
@@ -63,7 +64,11 @@ export class LoansService {
     const already = await this.totalRepaid(fam, eventId);
     const target = Number(event.targetAmount);
     const remaining = Math.max(0, target - already);
-    if (dto.amount > remaining + 0.005) {
+    // dto.amount est dans dto.currency (EUR par défaut). On convertit en EUR
+    // canonique pour comparer au reste dû (lui aussi en EUR).
+    const cols = originalToCols(dto.amount, dto.currency ?? 'EUR');
+    const amountEur = Number(cols.amount);
+    if (amountEur > remaining + 0.005) {
       throw new BadRequestException(
         `Montant trop élevé. Reste dû : ${remaining.toFixed(2)} €`,
       );
@@ -72,7 +77,9 @@ export class LoansService {
     const r = repaymentRepo.create({
       eventId,
       memberId: event.borrowerId!,
-      amount: dto.amount.toFixed(2),
+      amount: cols.amount,
+      originalAmount: cols.originalAmount,
+      originalCurrency: cols.originalCurrency,
       method: dto.method ?? null,
       note: dto.note ?? null,
       recordedById: fam.memberId,
@@ -84,7 +91,7 @@ export class LoansService {
     }
     await repaymentRepo.save(r);
 
-    const newTotal = already + dto.amount;
+    const newTotal = already + amountEur;
     if (newTotal + 0.005 >= target) {
       // Loan fully repaid → close + unblock borrower if previously blocked.
       event.status = 'closed';

@@ -27,4 +27,9 @@ export class CreateExternalContributionDto {
   @IsOptional()
   @IsString()
   dateContributed?: string;
+
+  /** Devise du `amount` saisi (EUR par défaut). XAF = FCFA BEAC. */
+  @IsOptional()
+  @IsEnum(['EUR', 'XAF'])
+  currency?: 'EUR' | 'XAF';
 }

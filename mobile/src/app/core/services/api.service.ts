@@ -53,6 +53,8 @@ interface ContributionPayload {
   amount: number;
   /** Canal de paiement choisi par le membre (paypal | mobile_money). */
   channel?: 'paypal' | 'mobile_money';
+  /** Devise du montant saisi (EUR par défaut). XAF = FCFA BEAC. */
+  currency?: 'EUR' | 'XAF';
 }
 
 interface AllocationPayload {
@@ -168,6 +170,8 @@ export class ApiService {
     note?: string;
     /** YYYY-MM-DD pour backdater le versement. */
     dateContributed?: string;
+    /** Devise du montant saisi (EUR par défaut). */
+    currency?: 'EUR' | 'XAF';
   }) {
     return this.http.post<{ id: string; amount: string }>(`${this.base}/contributions/manual`, p);
   }
@@ -226,9 +230,11 @@ export class ApiService {
     method?: string,
     note?: string,
     dateContributed?: string,
+    currency?: 'EUR' | 'XAF',
   ) {
     return this.http.post<LoanRepayment>(`${this.base}/events/${eventId}/repayments`, {
       amount, method, note, dateContributed,
+      ...(currency ? { currency } : {}),
     });
   }
 
@@ -244,11 +250,13 @@ export class ApiService {
     note?: string,
     memberId?: string,
     dateContributed?: string,
+    currency?: 'EUR' | 'XAF',
   ) {
     return this.http.post(`${this.base}/events/${eventId}/external-contributions`, {
       amount, method, note,
       ...(memberId ? { memberId } : {}),
       ...(dateContributed ? { dateContributed } : {}),
+      ...(currency ? { currency } : {}),
     });
   }
 

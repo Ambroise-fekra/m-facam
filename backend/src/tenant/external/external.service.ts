@@ -5,6 +5,7 @@ import { Event } from '../events/event.entity';
 import { Member } from '../members/member.entity';
 import { ExternalContribution } from './external-contribution.entity';
 import { CreateExternalContributionDto } from './dto/create-external-contribution.dto';
+import { originalToCols } from '../../common/currency';
 
 @Injectable()
 export class ExternalService {
@@ -82,10 +83,13 @@ export class ExternalService {
     }
 
     const repo = ds.getRepository(ExternalContribution);
+    const cols = originalToCols(dto.amount, dto.currency ?? 'EUR');
     const c = repo.create({
       eventId,
       memberId: targetId,
-      amount: dto.amount.toFixed(2),
+      amount: cols.amount,
+      originalAmount: cols.originalAmount,
+      originalCurrency: cols.originalCurrency,
       method: dto.method ?? null,
       note: dto.note ?? null,
       recordedById: fam.memberId,

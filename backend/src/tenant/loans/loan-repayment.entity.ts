@@ -36,8 +36,16 @@ export class LoanRepayment {
   @Column({ name: 'member_id' })
   memberId: string;
 
+  /** Montant canonique en EUR — sert au cumul "remboursé" du prêt. */
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: string;
+
+  /** Montant tel que saisi (XAF possible). */
+  @Column({ name: 'original_amount', type: 'numeric', precision: 14, scale: 2, nullable: true })
+  originalAmount: string | null;
+
+  @Column({ name: 'original_currency', type: 'varchar', length: 4, nullable: true })
+  originalCurrency: 'EUR' | 'XAF' | null;
 
   /** 'transfer' | 'cash' | 'cheque' | 'paypal' | 'other' */
   @Column({ type: 'varchar', length: 16, nullable: true })

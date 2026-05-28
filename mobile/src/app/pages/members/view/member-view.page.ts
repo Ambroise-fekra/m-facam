@@ -172,10 +172,16 @@ import { FamilyEvent, Member } from '../../../core/models/api.models';
           </ng-container>
 
           <ng-container *ngIf="versCanShowForm()">
-            <label class="fld-label req">Montant (€)</label>
-            <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="versAmount" placeholder="50"></ion-input>
+            <label class="fld-label req">Devise</label>
+            <ion-select class="fld" interface="alert" [(ngModel)]="versCurrency">
+              <ion-select-option value="EUR">€ Euro</ion-select-option>
+              <ion-select-option value="XAF">FCFA (Franc CFA)</ion-select-option>
+            </ion-select>
+
+            <label class="fld-label req">Montant ({{ versCurrency === 'XAF' ? 'FCFA' : '€' }})</label>
+            <ion-input class="fld" type="number" inputmode="decimal" [(ngModel)]="versAmount" [placeholder]="versCurrency === 'XAF' ? '50000' : '50'"></ion-input>
             <p class="t-muted small" *ngIf="versAmount > 0">
-              ≈ <strong>{{ currency.xaf(versAmount) }}</strong>
+              ≈ <strong>{{ versCurrency === 'XAF' ? currency.eur(currency.toEur(versAmount)) : currency.xaf(versAmount) }}</strong>
             </p>
 
             <label class="fld-label req">Mode de versement</label>
@@ -303,6 +309,7 @@ export class MemberViewPage implements OnInit {
   versEventId = '';
   versAmount = 0;
   versMethod: '' | 'cash' | 'transfer' | 'cheque' | 'paypal' | 'mobile_money' | 'other' = 'cash';
+  versCurrency: 'EUR' | 'XAF' = 'EUR';
   versDate = '';
   versNote = '';
 
@@ -388,6 +395,7 @@ export class MemberViewPage implements OnInit {
     const noteArg = this.versNote || undefined;
     const method = this.versMethod as 'cash' | 'transfer' | 'cheque' | 'paypal' | 'mobile_money' | 'other';
 
+    const cur = this.versCurrency;
     const obs =
       this.versType === 'caisse'
         ? this.api.recordManualContribution({
@@ -396,9 +404,10 @@ export class MemberViewPage implements OnInit {
             method,
             note: noteArg,
             dateContributed: dateArg,
+            currency: cur,
           })
         : this.versType === 'loan'
-        ? this.api.recordRepayment(this.versEventId, this.versAmount, method, noteArg, dateArg)
+        ? this.api.recordRepayment(this.versEventId, this.versAmount, method, noteArg, dateArg, cur)
         : this.api.contributeExternal(
             this.versEventId,
             this.versAmount,
@@ -406,13 +415,14 @@ export class MemberViewPage implements OnInit {
             noteArg,
             m.id,
             dateArg,
+            cur,
           );
 
     obs.subscribe({
       next: async () => {
         await loading.dismiss();
         const t = await this.toastCtrl.create({
-          message: `Versement de ${this.versAmount} € enregistré pour ${m.firstName}`,
+          message: `Versement de ${this.versAmount} ${this.versCurrency === 'XAF' ? 'FCFA' : '€'} enregistré pour ${m.firstName}`,
           color: 'success',
           duration: 2500,
         });

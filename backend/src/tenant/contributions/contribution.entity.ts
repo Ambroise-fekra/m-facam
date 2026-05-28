@@ -24,8 +24,20 @@ export class Contribution {
   @Column({ name: 'member_id' })
   memberId: string;
 
+  /** Montant canonique en EUR — sert aux totaux caisse, soldes, etc. */
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: string;
+
+  /**
+   * Montant tel que saisi par le membre (= ce qu'il a réellement payé).
+   * Permet d'afficher "10 000 FCFA" en historique sans perte d'arrondi.
+   */
+  @Column({ name: 'original_amount', type: 'numeric', precision: 14, scale: 2, nullable: true })
+  originalAmount: string | null;
+
+  /** 'EUR' ou 'XAF' (FCFA BEAC). */
+  @Column({ name: 'original_currency', type: 'varchar', length: 4, nullable: true })
+  originalCurrency: 'EUR' | 'XAF' | null;
 
   @Column({ name: 'paypal_tx_id', type: 'varchar', length: 128, nullable: true })
   paypalTxId: string | null;

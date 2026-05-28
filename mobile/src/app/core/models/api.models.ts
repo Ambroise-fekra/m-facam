@@ -142,6 +142,8 @@ export interface LoanRepayment {
   eventId: string;
   memberId: string;
   amount: string;
+  originalAmount?: string | null;
+  originalCurrency?: 'EUR' | 'XAF' | null;
   method: string | null;
   note: string | null;
   createdAt: string;
@@ -152,6 +154,8 @@ export interface ExternalContribution {
   eventId: string;
   memberId: string;
   amount: string;
+  originalAmount?: string | null;
+  originalCurrency?: 'EUR' | 'XAF' | null;
   method: string | null;
   note: string | null;
   createdAt: string;
@@ -173,7 +177,12 @@ export interface Transaction {
   id: string;
   type: 'credit' | 'debit';
   label: string;
+  /** Montant canonique en EUR (sert au total + au fallback affichage). */
   amount: string;
+  /** Montant tel que saisi (sera affiché en priorité dans la devise d'origine). */
+  originalAmount?: string | null;
+  /** 'EUR' ou 'XAF'. Null sur les lignes pré-migration : on retombe sur amount EUR. */
+  originalCurrency?: 'EUR' | 'XAF' | null;
   createdAt: string;
   reference: string;
 }

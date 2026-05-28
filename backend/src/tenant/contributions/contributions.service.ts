@@ -10,6 +10,7 @@ import { CreateContributionDto } from './dto/create-contribution.dto';
 import { RecordManualContributionDto } from './dto/record-manual-contribution.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../../payments/payment-provider.interface';
+import { originalToCols } from '../../common/currency';
 
 export interface MemberBalance {
   memberId: string;
@@ -29,20 +30,28 @@ export class ContributionsService {
   async startContribution(fam: FamilyContext, dto: CreateContributionDto) {
     const ds = await this.tenantRouting.getDataSourceFor(fam.identifier);
     const repo = ds.getRepository(Contribution);
+    // dto.amount est saisi dans dto.currency (EUR par défaut). On stocke
+    // l'EUR canonique en `amount` ET les valeurs originelles pour l'affichage
+    // fidèle (10 000 FCFA reste 10 000 FCFA dans l'historique).
+    const cols = originalToCols(dto.amount, dto.currency ?? 'EUR');
     const contribution = repo.create({
       memberId: fam.memberId,
-      amount: dto.amount.toFixed(2),
+      amount: cols.amount,
+      originalAmount: cols.originalAmount,
+      originalCurrency: cols.originalCurrency,
       status: 'pending',
-      // Canal choisi par le membre (paypal | mobile_money). En phase 1 on
-      // l'enregistre pour info ; en phase 2 il routera vers le bon provider.
       channel: dto.channel ?? null,
     });
     await repo.save(contribution);
 
+    // Le checkout reçoit le montant dans la devise locale du provider :
+    //  - PayPal accepte uniquement EUR -> on envoie amount EUR
+    //  - CinetPay (phase 2, Congo) acceptera XAF -> on enverra original_amount
+    // Pour Phase 1, tous les checkouts passent par le mock qui s'en moque.
     const checkout = await this.payments.createContributionCheckout({
       identifier: fam.identifier,
       contributionId: contribution.id,
-      amountEur: dto.amount,
+      amountEur: Number(cols.amount),
     });
     return { contributionId: contribution.id, approveUrl: checkout.approveUrl };
   }
@@ -67,9 +76,12 @@ export class ContributionsService {
       throw new BadRequestException('Impossible d\'enregistrer une cotisation pour un membre décédé');
     }
     const repo = ds.getRepository(Contribution);
+    const cols = originalToCols(dto.amount, dto.currency ?? 'EUR');
     const c = repo.create({
       memberId: target.id,
-      amount: dto.amount.toFixed(2),
+      amount: cols.amount,
+      originalAmount: cols.originalAmount,
+      originalCurrency: cols.originalCurrency,
       status: 'completed',
       method: dto.method,
       channel: null,

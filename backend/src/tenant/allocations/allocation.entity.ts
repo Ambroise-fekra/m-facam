@@ -33,8 +33,16 @@ export class Allocation {
   @Column({ name: 'member_id' })
   memberId: string;
 
+  /** Montant canonique en EUR — utilisé pour les soldes et totaux. */
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: string;
+
+  /** Montant tel que saisi par le membre (XAF possible). */
+  @Column({ name: 'original_amount', type: 'numeric', precision: 14, scale: 2, nullable: true })
+  originalAmount: string | null;
+
+  @Column({ name: 'original_currency', type: 'varchar', length: 4, nullable: true })
+  originalCurrency: 'EUR' | 'XAF' | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

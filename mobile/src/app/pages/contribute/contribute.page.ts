@@ -54,14 +54,20 @@ import { Member, MyBalance } from '../../core/models/api.models';
       </div>
 
       <ng-container *ngIf="!paymentStarted">
-        <label class="fld-label">Montant à verser (€)</label>
-        <ion-input class="fld amount" type="number" inputmode="decimal" [(ngModel)]="amount" placeholder="100"></ion-input>
+        <label class="fld-label">Devise</label>
+        <ion-select class="fld" interface="alert" [(ngModel)]="paymentCurrency">
+          <ion-select-option value="EUR">€ Euro</ion-select-option>
+          <ion-select-option value="XAF">FCFA (Franc CFA)</ion-select-option>
+        </ion-select>
+
+        <label class="fld-label">Montant à verser ({{ paymentCurrency === 'XAF' ? 'FCFA' : '€' }})</label>
+        <ion-input class="fld amount" type="number" inputmode="decimal" [(ngModel)]="amount" [placeholder]="paymentCurrency === 'XAF' ? '50000' : '100'"></ion-input>
         <p class="t-muted small" *ngIf="amount > 0">
-          ≈ <strong>{{ currency.xaf(amount) }}</strong>
+          ≈ <strong>{{ paymentCurrency === 'XAF' ? currency.eur(currency.toEur(amount)) : currency.xaf(amount) }}</strong>
         </p>
 
         <p class="preview" *ngIf="balance && amount > 0">
-          Après versement : <strong>{{ currency.eurXaf((+balance.balance + amount).toFixed(2)) }}</strong>
+          Après versement : <strong>{{ currency.eurXaf(afterBalance()) }}</strong>
         </p>
 
         <label class="fld-label">Canal de paiement</label>
@@ -135,14 +141,27 @@ export class ContributePage implements OnInit {
   me: Member | null = null;
   amount = 0;
   channel: 'paypal' | 'mobile_money' | '' = '';
+  paymentCurrency: 'EUR' | 'XAF' = 'EUR';
   paymentStarted = false;
+
+  /** Solde après versement = solde actuel + équivalent EUR du montant saisi. */
+  afterBalance(): string {
+    const current = parseFloat(this.balance?.balance ?? '0');
+    const addEur =
+      this.paymentCurrency === 'XAF' ? this.currency.toEur(this.amount) : this.amount;
+    return (current + addEur).toFixed(2);
+  }
 
   ngOnInit() {
     this.refresh();
     this.api.me().subscribe((m) => {
       this.me = m;
-      // Pré-sélectionne le canal préféré du membre si défini.
-      if (m.preferredChannel) this.channel = m.preferredChannel;
+      // Pré-sélectionne le canal préféré du membre si défini, et préselectionne
+      // la devise cohérente : Mobile Money -> FCFA, PayPal -> EUR.
+      if (m.preferredChannel) {
+        this.channel = m.preferredChannel;
+        this.paymentCurrency = m.preferredChannel === 'mobile_money' ? 'XAF' : 'EUR';
+      }
     });
   }
 
@@ -165,7 +184,11 @@ export class ContributePage implements OnInit {
     const loading = await this.loadingCtrl.create({ message: 'Préparation du paiement…' });
     await loading.present();
     this.api
-      .startContribution({ amount: this.amount, channel: this.channel })
+      .startContribution({
+        amount: this.amount,
+        channel: this.channel,
+        currency: this.paymentCurrency,
+      })
       .subscribe({
         next: async (res) => {
           await loading.dismiss();

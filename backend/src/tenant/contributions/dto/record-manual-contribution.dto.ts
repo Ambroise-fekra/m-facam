@@ -32,4 +32,9 @@ export class RecordManualContributionDto {
   @IsString()
   @Length(0, 255)
   note?: string;
+
+  /** Devise du `amount` saisi (EUR par défaut). XAF = FCFA BEAC. */
+  @IsOptional()
+  @IsEnum(['EUR', 'XAF'])
+  currency?: 'EUR' | 'XAF';
 }

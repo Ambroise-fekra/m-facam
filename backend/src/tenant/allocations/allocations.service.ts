@@ -6,6 +6,7 @@ import { Event } from '../events/event.entity';
 import { CreateAllocationDto } from './dto/create-allocation.dto';
 import { ContributionsService } from '../contributions/contributions.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { originalToCols } from '../../common/currency';
 
 @Injectable()
 export class AllocationsService {
@@ -42,10 +43,22 @@ export class AllocationsService {
       const existing = await repo.findOne({
         where: { eventId: dto.eventId, memberId: fam.memberId },
       });
+      // Allocation est toujours en EUR (debit de la part personnelle qui est
+      // elle-même calculee en EUR). On garde quand même les colonnes
+      // original_* renseignees pour la cohérence du schema.
+      const cols = originalToCols(dto.amount, 'EUR');
       const alloc =
         existing ??
-        repo.create({ eventId: dto.eventId, memberId: fam.memberId, amount: '0' });
-      alloc.amount = (Number(alloc.amount) + dto.amount).toFixed(2);
+        repo.create({
+          eventId: dto.eventId,
+          memberId: fam.memberId,
+          amount: '0',
+          originalAmount: '0',
+          originalCurrency: 'EUR',
+        });
+      alloc.amount = (Number(alloc.amount) + Number(cols.amount)).toFixed(2);
+      alloc.originalAmount = (Number(alloc.originalAmount ?? '0') + Number(cols.originalAmount)).toFixed(2);
+      alloc.originalCurrency = 'EUR';
       await repo.save(alloc);
 
       await this.notifications.broadcast(fam, 'allocation_recorded', {
